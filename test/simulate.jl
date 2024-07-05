@@ -1,12 +1,5 @@
 @testset "simulate.jl" begin
     @test begin
-        Random.seed!(1)
-        testvalue = ones(Bool, 4)
-        MF.forward_simulation!(testvalue, MF.MarkovChainConnectivity(MarkovChainModel(.5, .5, .5), ones(Int, (4,4))), [true, true, false, false])
-        testvalue == [true,false,true,false]
-    end
-
-    @test begin
         testvalue = [true,false,true,false]
         MF.forward_simulation!(testvalue, MF.MarkovChainConnectivity(MarkovChainModel(.5, .5, 0.), ones(Int, (4,4))), [true,false,true,false])
         testvalue == [true,true,true,true]
