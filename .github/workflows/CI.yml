@@ -74,6 +74,7 @@ jobs:
         shell: julia --project=docs --color=yes {0}
         run: |
           using Documenter: DocMeta, doctest
+          using Random
           using MeanFieldGraph
           DocMeta.setdocmeta!(MeanFieldGraph, :DocTestSetup, :(using MeanFieldGraph); recursive=true)
           doctest(MeanFieldGraph)
