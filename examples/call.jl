@@ -12,19 +12,19 @@ r₊ = .6
 λ = .5
 p = .3
 μ = β*λ
-model = DiscreteHawkesModel(μ,λ,p)
+model = MarkovChainModel(μ,λ,p)
 m,v,w = mvw(model, r₊)
 
-DiscreteHawkes.Φ(m,v,w,r₊)
+MeanFieldGraph.Φ(m,v,w,r₊)
 
 
 # The naive classification of the neurons by the difference between the activity after a 0 and after a 1,
 # can work
-Z = DiscreteHawkes.N2Z(N, r₊)
+excitatory = MeanFieldGraph.N2excitatory(N, r₊)
 T = Int(1e6)
-data = rand(model, Z, T)
+data = rand(model, excitatory, T)
 begin
-    id = 125
+    id = 145
     time0 = pushfirst!(data.X[id, 1:(end-1)] .== 0, false)
     mean0 = mean(data.X[:, time0])
     time1 = pushfirst!(data.X[id, 1:(end-1)] .== 1, false)

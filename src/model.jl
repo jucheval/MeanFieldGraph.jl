@@ -136,7 +136,7 @@ function mvw(model::MarkovChainModel, r₊)
 end
 
 """
-    mvw_inf(modelconnec::MarkovChainConnectivity, Z::Vector{Bool})
+    mvw_inf(modelconnec::MarkovChainConnectivity, excitatory::Vector{Bool})
 
 Compute the limit of the three estimators ``\\hat{m}``, ``\\hat{v}`` and ``\\hat{w}`` when ``T\\to \\infty``.
 
@@ -151,19 +151,19 @@ w_\\infty = \\frac{1}{N} \\sum_{i=1}^N (c^N_i)^2 m^N_i (1 - m^N_i) ,
 ```
 # Arguments
 - `modelconnec::MarkovChainConnectivity`: a `MarkovChainModel` with a specified connectivity matrix `θ`.
-- `Z::Vector{Bool}`: `true` coordinates correspond to excitatory components and `false` coordinates correspond to inhibitory components.
+- `excitatory::Vector{Bool}`: `true` coordinates correspond to excitatory components and `false` coordinates correspond to inhibitory components.
 """
-function mvw_inf(modelconnec::MarkovChainConnectivity, Z::Vector{Bool})
+function mvw_inf(modelconnec::MarkovChainConnectivity, excitatory::Vector{Bool})
     model = modelconnec.model
     θ = modelconnec.θ
-    N = length(Z)
-    r₊ = sum(Z.==true)/N
+    N = length(excitatory)
+    r₊ = sum(excitatory.==true)/N
     μ = model.μ
     λ = model.λ
 
-    A = 1/N * (θ .* transpose(-1 .+ 2*Z))
+    A = 1/N * (θ .* transpose(-1 .+ 2*excitatory))
     Q = inv(I - (1-λ)*A)
-    L⁻ = sum(A[:,Z .== false], dims=2)
+    L⁻ = sum(A[:,excitatory .== false], dims=2)
     mN = μ*Q*ones(N) - (1-λ)*Q*L⁻
     c = sum(Q, dims=1)
 
@@ -172,9 +172,9 @@ function mvw_inf(modelconnec::MarkovChainConnectivity, Z::Vector{Bool})
     w_inf = mean(c.^2 .* (mN - mN.^2))
     return m_inf, v_inf, w_inf
 end
-mvw_inf(modelconnec::MarkovChainConnectivity, N::Int, r₊::Float64) = mvw_inf(modelconnec, N2Z(N,r₊))
+mvw_inf(modelconnec::MarkovChainConnectivity, N::Int, r₊::Float64) = mvw_inf(modelconnec, N2excitatory(N,r₊))
 
-function N2Z(N, r₊)
+function N2excitatory(N, r₊)
     N₊ = floor(Int,N*r₊)
     return [ones(Bool, N₊); zeros(Bool, N - N₊)]
 end

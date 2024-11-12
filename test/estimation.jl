@@ -4,7 +4,7 @@
         Tsimu = Int(1e4)
         N = 1000
         r₊ = rand()
-        Z = MF.N2Z(N, r₊)
+        excitatory = MF.N2excitatory(N, r₊)
         β = rand()
         λ = .3 + .7*rand()
         p = rand()
@@ -17,9 +17,9 @@
         for i in 1:Nsimu
             θ = rand(MF.ErdosRenyiGraph(N, p))
             modelconnec = MarkovChainConnectivity(model, θ) 
-            data = rand(modelconnec, Z, Tsimu)
+            data = rand(modelconnec, excitatory, Tsimu)
             hat = hat .+ MF.estimators(data, floor(Int,sqrt(Tsimu))) ./ Nsimu
-            hat_inf = hat_inf .+ MF.mvw_inf(MF.MarkovChainConnectivity(model,θ), Z) ./ Nsimu
+            hat_inf = hat_inf .+ MF.mvw_inf(MF.MarkovChainConnectivity(model,θ), excitatory) ./ Nsimu
         end
     
         sum(abs.(hat .- theo)) < 1e-2
@@ -30,13 +30,13 @@
     Tsimu = Int(1e4)
     N = 1000
     r₊ = rand()
-    Z = MF.N2Z(N, r₊)
+    excitatory = MF.N2excitatory(N, r₊)
     β = rand()
     λ = .3 + .7*rand()
     p = rand()
     model = MarkovChainModel(β*λ,λ,p)
 
-    data = rand(model, Z, Tsimu)
+    data = rand(model, excitatory, Tsimu)
     @test begin
         m,v,w = estimators(data)
         m,v,w1 = estimators(data, 1)

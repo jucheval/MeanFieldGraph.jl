@@ -9,13 +9,13 @@ function rand(graph::ErdosRenyiGraph)::Matrix{Bool}
 end
 
 """
-    rand(modelconnec::MarkovChainConnectivity, Z::Vector{Bool}, T::Int)
+    rand(modelconnec::MarkovChainConnectivity, excitatory::Vector{Bool}, T::Int)
 
 Simulate a realization of a *Markov Chain model* with a specified connectivity matrix.
 
 # Arguments
 - `modelconnec::MarkovChainConnectivity`: a `MarkovChainModel` with a specified connectivity matrix `θ`.
-- `Z::Vector{Bool}`: `true` coordinates correspond to excitatory components and `false` coordinates correspond to inhibitory components.
+- `excitatory::Vector{Bool}`: `true` coordinates correspond to excitatory components and `false` coordinates correspond to inhibitory components.
 - `T::Int`: Time length of the simulation.
 
 ```jldoctest
@@ -23,11 +23,11 @@ using MeanFieldGraph
 model = MarkovChainModel(.5, .5, .5)
 θ = [[1 1];[0 1]]
 modelconnec = MarkovChainConnectivity(model,θ)
-Z = [true, false]
+excitatory = [true, false]
 
 using Random
 Random.seed!(1)
-data = rand(modelconnec, Z, 10)
+data = rand(modelconnec, excitatory, 10)
 data.X
 
 # output
@@ -37,44 +37,44 @@ data.X
  1  0  1  1  0  1  0  1  1  0
 ```
 """
-function rand(modelconnec::MarkovChainConnectivity, Z::Vector{Bool}, T::Int)::DiscreteTimeData
-    N = length(Z)
+function rand(modelconnec::MarkovChainConnectivity, excitatory::Vector{Bool}, T::Int)::DiscreteTimeData
+    N = length(excitatory)
     output = Matrix{Bool}(undef, N, T)
-    current_value = stationary_initial_condition(modelconnec, Z)
+    current_value = stationary_initial_condition(modelconnec, excitatory)
     output[:,1] = current_value
     for t in 1:(T-1)
-        forward_simulation!(current_value, modelconnec, Z)
+        forward_simulation!(current_value, modelconnec, excitatory)
         output[:,t+1] = current_value
     end
     return DiscreteTimeData(output)
 end
-rand(modelconnec::MarkovChainConnectivity, N::Int, r₊::Float64, T::Int)::DiscreteTimeData = rand(modelconnec, N2Z(N, r₊), T)
+rand(modelconnec::MarkovChainConnectivity, N::Int, r₊::Float64, T::Int)::DiscreteTimeData = rand(modelconnec, N2excitatory(N, r₊), T)
 
 
 """
-    rand(model::MarkovChainModel, Z::Vector{Bool}, T::Int)
+    rand(model::MarkovChainModel, excitatory::Vector{Bool}, T::Int)
 
 Simulate a realization of a *Markov Chain model* without a specified connectivity matrix.
 
 # Arguments
 - `model::MarkovChainModel`: contains the parameters `μ`, `λ` and `p`.
-- `Z::Vector{Bool}`: `true` coordinates correspond to excitatory components and `false` coordinates correspond to inhibitory components.
+- `excitatory::Vector{Bool}`: `true` coordinates correspond to excitatory components and `false` coordinates correspond to inhibitory components.
 - `T::Int`: Time length of the simulation.
 
 # Remark
-It generates a connectivity matrix according to an Erdos-Rényi graph with parameter `p` and then apply the method `rand(modelconnec::MarkovChainConnectivity, Z::Vector{Bool}, T::Int)`.
+It generates a connectivity matrix according to an Erdos-Rényi graph with parameter `p` and then apply the method `rand(modelconnec::MarkovChainConnectivity, excitatory::Vector{Bool}, T::Int)`.
 ```
 """
-function rand(model::MarkovChainModel, Z::Vector{Bool}, T::Int)::DiscreteTimeData
-    graph = ErdosRenyiGraph(length(Z), model.p)
+function rand(model::MarkovChainModel, excitatory::Vector{Bool}, T::Int)::DiscreteTimeData
+    graph = ErdosRenyiGraph(length(excitatory), model.p)
     θ = rand(graph)
-    rand(MarkovChainConnectivity(model,θ), Z, T)
+    rand(MarkovChainConnectivity(model,θ), excitatory, T)
 end
-rand(model::MarkovChainModel, N::Int, r₊::Float64, T::Int)::DiscreteTimeData = rand(model, N2Z(N, r₊), T)
+rand(model::MarkovChainModel, N::Int, r₊::Float64, T::Int)::DiscreteTimeData = rand(model, N2excitatory(N, r₊), T)
 
 
 ## Auxiliary functions
-function stationary_initial_condition(modelconnec::MarkovChainConnectivity, Z::Vector{Bool})::Vector{Bool}
+function stationary_initial_condition(modelconnec::MarkovChainConnectivity, excitatory::Vector{Bool})::Vector{Bool}
     history_values = Dict{Int, Bool}[]
     history_child = Vector{Int}[]
     history_parent = Vector{Int}[]
@@ -99,7 +99,7 @@ function stationary_initial_condition(modelconnec::MarkovChainConnectivity, Z::V
         child_values = pop!(history_values)
         for (index, i) in enumerate(child)
             j = parent[index]
-            if Z[j] == true
+            if excitatory[j] == true
                 child_values[i] = parent_values[j]
             else
                 child_values[i] = 1-parent_values[j]
@@ -135,7 +135,7 @@ function backward_step(unknown_nodes::Vector{Int}, modelconnec::MarkovChainConne
     return values, remaining_nodes, parent_nodes
 end
 
-function forward_simulation!(current_value::Vector{Bool}, modelconnec::MarkovChainConnectivity, Z::Vector{Bool})
+function forward_simulation!(current_value::Vector{Bool}, modelconnec::MarkovChainConnectivity, excitatory::Vector{Bool})
     past_value = copy(current_value)
 
     model = modelconnec.model
@@ -151,7 +151,7 @@ function forward_simulation!(current_value::Vector{Bool}, modelconnec::MarkovCha
             if θ[i, j] == 0
                 current_value[i] = 0
             else
-                if Z[j] == true
+                if excitatory[j] == true
                     current_value[i] = past_value[j]
                 else
                     current_value[i] = 1-past_value[j]

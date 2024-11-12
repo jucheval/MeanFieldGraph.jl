@@ -20,14 +20,14 @@ function estimatorstable(model::MarkovChainModel, N::Int, r₊::Float64, Nsimu::
     df = DataFrame(idsimu = Int[], T = Int[], m̂ = Float64[], v̂ = Float64[], ŵ = Vector{Float64}[])
     df_inf = DataFrame(idsimu = Int[], m̂ = Float64[], v̂ = Float64[], ŵ = Float64[])
     
-    Z = MeanFieldGraph.N2Z(N, r₊)
+    excitatory = MeanFieldGraph.N2excitatory(N, r₊)
     
     @progress "simulation" for idsimu in 1:Nsimu
         θ = rand(MeanFieldGraph.ErdosRenyiGraph(N, model.p))
         modelconnec = MarkovChainConnectivity(model,θ)
-        push!(df_inf, (idsimu, mvw_inf(modelconnec, Z)...))
+        push!(df_inf, (idsimu, mvw_inf(modelconnec, excitatory)...))
 
-        data = rand(modelconnec, Z, T)
+        data = rand(modelconnec, excitatory, T)
         for t in tvec
             tmpdata = data[1:t]
             push!(df, (idsimu, t, estimators(tmpdata, Δvec)...))

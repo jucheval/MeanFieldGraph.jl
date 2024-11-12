@@ -21,8 +21,8 @@ begin   # Auxiliary functions
         return abs.([mvwhat; μλphat] .- truevalues)
     end
     
-    function abserror(modelconnec::ConnectivityMatrix, Z, r₊, truevalues)
-        m̂, v̂, ŵ = mvw_inf(modelconnec, Z)
+    function abserror(modelconnec::ConnectivityMatrix, excitatory, r₊, truevalues)
+        m̂, v̂, ŵ = mvw_inf(modelconnec, excitatory)
     
         μλphat = collect(DiscreteHawkes.Φ(m̂, v̂, ŵ, r₊))
         mvwhat = [m̂, v̂, ŵ]
@@ -104,14 +104,14 @@ begin   # Auxiliary functions
         df = DataFrame(idsimu = Int[], T = Int[], m̂ = Float64[], v̂ = Float64[], ŵ = Vector{Float64}[])
         df_inf = DataFrame(idsimu = Int[], m̂ = Float64[], v̂ = Float64[], ŵ = Float64[])
         
-        Z = DiscreteHawkes.N2Z(N, r₊)
+        excitatory = DiscreteHawkes.N2excitatory(N, r₊)
         
         @progress "simulation" for idsimu in 1:Nsimu
             θ = rand(DiscreteHawkes.ErdosRenyiGraph(N, model.p))
             modelconnec = DiscreteHawkes.ConnectivityMatrix(model,θ)
-            push!(df_inf, (idsimu, mvw_inf(modelconnec, Z)...))
+            push!(df_inf, (idsimu, mvw_inf(modelconnec, excitatory)...))
 
-            data = rand(modelconnec, Z, maximum(tvec))
+            data = rand(modelconnec, excitatory, maximum(tvec))
             for t in tvec
                 tmpdata = data[1:t]
                 push!(df, (idsimu, t, estimators(tmpdata, Δvec)...))
@@ -139,7 +139,7 @@ begin   # Auxiliary functions
             model = DiscreteHawkesModel(β*λ,λ,p)
             m, v, w = mvw(model, r₊)
             truevalues = [m, v, w, model.μ, model.λ, model.p]
-            Z = DiscreteHawkes.N2Z(N, r₊)
+            excitatory = DiscreteHawkes.N2excitatory(N, r₊)
             if type == "relative"
                 boundstruevalues = [[0,0,0,0,0,0] [1,1/4,10,1,1,1]]
                 scaling = minimum(abs.(truevalues .- boundstruevalues),dims=2)
@@ -149,9 +149,9 @@ begin   # Auxiliary functions
             @progress "sim and estim, i="*string(idparam)*" on "*string(length(Paramvec)) for idsimu in 1:Nsimu
                 θ = rand(DiscreteHawkes.ErdosRenyiGraph(N, model.p))
                 modelconnec = DiscreteHawkes.ConnectivityMatrix(model,θ)
-                E_inf[:, idsimu, idparam] = abserror(modelconnec, Z, r₊, truevalues)
+                E_inf[:, idsimu, idparam] = abserror(modelconnec, excitatory, r₊, truevalues)
     
-                data = rand(modelconnec, Z, maximum(tvec))
+                data = rand(modelconnec, excitatory, maximum(tvec))
                 for idt in eachindex(tvec)
                     if Paramsymbol == :Δ
                         E[:, idt, idsimu, idparam] = abserror(data[1:tvec[idt]], r₊, Paramvec[idparam], truevalues) ./ scaling 
