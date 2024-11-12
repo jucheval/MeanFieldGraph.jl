@@ -5,7 +5,7 @@ using Distributions, LinearAlgebra, Plots
 export MarkovChainModel, DiscreteTimeData, MarkovChainConnectivity
 export mvw, mvw_inf
 export rand
-export estimators, fit
+export estimators, fit, classification
 export plot
 
 
