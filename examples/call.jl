@@ -1,4 +1,4 @@
-using DiscreteHawkes
+using MeanFieldGraph
 using Distributions
 using DataFrames
 using ProgressLogging
