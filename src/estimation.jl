@@ -76,19 +76,6 @@ function fit(::Type{MarkovChainModel}, data::DiscreteTimeData, r₊::Float64; Δ
     return MarkovChainModel(μ, λ, p)
 end
 
-function classification(data::DiscreteTimeData)::Vector{Bool}
-    N, T = size(data)
-
-    σ̂ = covariance_vector(data)
-    τ = sortperm(σ̂)
-    D = diff(σ̂[τ])
-    k̂ = argmax(D)
-
-    output = ones(Bool, N)
-    output[τ[1:k̂]] .= false
-
-    return output
-end
 
 ## Auxiliary functions
 function ϕ(m,v,w_or_d,r₊)::Tuple{Float64,Float64}
@@ -179,19 +166,4 @@ function projection2admissibleset(μ, λ, p)::Tuple{Float64,Float64,Float64}
     p = min(1, max(0, p))
     μ = min(λ, max(0, μ))
     return (μ, λ, p)
-end
-
-function covariance_vector(data::DiscreteTimeData)::Vector{Float64}
-    X = data.X
-    N, T = size(data)
-    Z = sum(X; dims=2)
-    ΣX = sum(X; dims=1)
-
-    s = zeros(N)
-    for t in 2:T
-        s += ΣX[t]*X[:,t-1]
-    end
-    output = s/(T-1) - sum(Z)*Z/T^2
-
-    return output[:,1]
 end
