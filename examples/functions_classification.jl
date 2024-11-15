@@ -31,7 +31,7 @@ function classification_errors(model::MarkovChainModel, N::Int, r₊::Float64, N
 end
 
 function classiferrorarray(Paramsymbol::Symbol, Paramvec, default_values, Nsimu, tvec)::Array{Float64}
-    output = Array{Float64}(undef, length(tvec), Nsimu, length(Paramvec), 3)
+    output = Array{Float64}(undef, length(tvec), Nsimu, length(Paramvec), 2)
 
     ## Set default
     N, r₊, β, λ, p = default_values
@@ -55,10 +55,9 @@ function classiferrorarray(Paramsymbol::Symbol, Paramvec, default_values, Nsimu,
         data = rand(model, excitatory, T)
             for idt in eachindex(tvec)
                 tmpdata = data[1:tvec[idt]]
-                naive, kmeans, kmedoids = classification(tmpdata)
+                naive, kmeans = classification(tmpdata)
                 output[idt, idsimu, idparam, 1] = mean(abs.(naive - excitatory))
                 output[idt, idsimu, idparam, 2] = mean(abs.(kmeans - excitatory))
-                output[idt, idsimu, idparam, 3] = mean(abs.(kmedoids - excitatory))
             end
         end
     end
