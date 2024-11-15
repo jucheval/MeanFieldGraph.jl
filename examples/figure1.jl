@@ -1,9 +1,16 @@
-include("functions.jl")
-include("default_values.jl")
-
+include("functions_estimation.jl")
 Random.seed!(1)
 
-# Parameter values
+## Default values
+N = 500
+r₊ = .5
+β = .5
+λ = .5
+p = .5
+Δ = 1
+Nsimu = Int(1e3)
+
+# Specific values
 model = MarkovChainModel(β*λ,λ,p)
 Nsimu = 100
 T = Int(1e5)
