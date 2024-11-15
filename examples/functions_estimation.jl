@@ -22,7 +22,7 @@ function estimatorstable(model::MarkovChainModel, N::Int, r₊::Float64, Nsimu::
     
     excitatory = MeanFieldGraph.N2excitatory(N, r₊)
     
-    @progress "simulation" for idsimu in 1:Nsimu
+    @progress "estimatorstable" for idsimu in 1:Nsimu
         θ = rand(MeanFieldGraph.ErdosRenyiGraph(N, model.p))
         modelconnec = MarkovChainConnectivity(model,θ)
         push!(df_inf, (idsimu, mvw_inf(modelconnec, excitatory)...))
