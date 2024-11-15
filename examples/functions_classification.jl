@@ -78,15 +78,13 @@ function classiferrortables(Paramsymbol::Symbol, Paramvec, default_values, Nsimu
     Paramsymbol == :N ? Typeparam = Int : Typeparam = Float64
     df = DataFrame(color = Int[], parameter = Typeparam[], T = Int[], 
                     prop_errors_naive = Float64[], exact_recovery_naive = Float64[],
-                    prop_errors_kmeans = Float64[], exact_recovery_kmeans = Float64[],
-                    prop_errors_kmedoids = Float64[], exact_recovery_kmedoids = Float64[])
+                    prop_errors_kmeans = Float64[], exact_recovery_kmeans = Float64[])
     n1, n2, n3, n4 = size(A)
     for idparam in 1:n3
         for idt in 1:n1
             push!(df, (idparam, Paramvec[idparam], tvec[idt], 
                         mean(A[idt,:,idparam,1]), mean(A[idt,:,idparam,1] .== 0),
-                        mean(A[idt,:,idparam,2]), mean(A[idt,:,idparam,2] .== 0),
-                        mean(A[idt,:,idparam,3]), mean(A[idt,:,idparam,3] .== 0)))
+                        mean(A[idt,:,idparam,2]), mean(A[idt,:,idparam,2] .== 0)))
         end
     end
     metadata!(df, "Varying parameter", String(Paramsymbol))
