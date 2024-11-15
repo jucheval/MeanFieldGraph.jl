@@ -65,26 +65,28 @@ function classiferrorarray(Paramsymbol::Symbol, Paramvec, default_values, Nsimu,
 end
 
 """
-    classiferrortables(Paramsymbol::Symbol, Paramvec, default_values, Nsimu, tvec)::DataFrame
+    classiferrortables(Paramsymbol::Symbol, Paramvec, default_values::@NamedTuple{N::Int64, r₊::Float64, β::Float64, λ::Float64, p::Float64, Nsimu::Int64}, tvec)::DataFrame
 
-For each value of the parameter `Paramsymbol` prescribed via `Paramvec`, estimate the mean proportion of classification errors and the probability of exact recovery over 'Nsimu' simulations at the observations times ``T`` given by `tvec`.
+For each value of the parameter `Paramsymbol` prescribed via `Paramvec`, compute the Monte Carlo estimate of the mean proportion of classification errors and the probability of exact recovery at the observations times ``T`` given by `tvec`. The fixed parameters and the number of simulations used in the Monte Carlo estimation are specified by the named tuple `default_values`.
 
 # Output
 One `DataFrame`: each parameter value correspond to `length(tvec)` rows. The last two columns give the mean proportion of classification errors and the probability of exact recovery.
 """
-function classiferrortables(Paramsymbol::Symbol, Paramvec, default_values, Nsimu, tvec)::DataFrame
-    A = classiferrorarray(Paramsymbol::Symbol, Paramvec, default_values, Nsimu, tvec)
+function classiferrortables(Paramsymbol::Symbol, Paramvec, default_values::@NamedTuple{N::Int64, r₊::Float64, β::Float64, λ::Float64, p::Float64, Nsimu::Int64}, tvec)::DataFrame
+    A = classiferrorarray(Paramsymbol::Symbol, Paramvec, default_values, default_values.Nsimu, tvec)
 
     Paramsymbol == :N ? Typeparam = Int : Typeparam = Float64
     df = DataFrame(color = Int[], parameter = Typeparam[], T = Int[], 
                     prop_errors_naive = Float64[], exact_recovery_naive = Float64[],
-                    prop_errors_kmeans = Float64[], exact_recovery_kmeans = Float64[])
+                    prop_errors_kmeans = Float64[], exact_recovery_kmeans = Float64[],
+                    prop_errors_kmedoids = Float64[], exact_recovery_kmedoids = Float64[])
     n1, n2, n3, n4 = size(A)
     for idparam in 1:n3
         for idt in 1:n1
             push!(df, (idparam, Paramvec[idparam], tvec[idt], 
                         mean(A[idt,:,idparam,1]), mean(A[idt,:,idparam,1] .== 0),
-                        mean(A[idt,:,idparam,2]), mean(A[idt,:,idparam,2] .== 0)))
+                        mean(A[idt,:,idparam,2]), mean(A[idt,:,idparam,2] .== 0),
+                        mean(A[idt,:,idparam,3]), mean(A[idt,:,idparam,3] .== 0)))
         end
     end
     metadata!(df, "Varying parameter", String(Paramsymbol))
