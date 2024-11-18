@@ -5,18 +5,9 @@ Estimates the two underlying communities (one excitatory and one inhibitory) fro
 """
 function classification(data::DiscreteTimeData)::@NamedTuple{naive::Vector{Bool}, kmeans::Vector{Bool}}
     N, T = size(data)
-
     σ̂ = covariance_vector(data)
-
-    output_kmeans = cluster2bool(kmeans(transpose(σ̂), 2))
-    
-    τ = sortperm(σ̂)
-    D = diff(σ̂[τ])
-    k̂ = argmax(D)
-    output_naive = ones(Bool, N)
-    output_naive[τ[1:k̂]] .= false
-
-    return (naive = output_naive, kmeans = output_kmeans)
+    output = cluster2bool(kmeans(transpose(σ̂), 2))
+    return output
 end
 
 function covariance_vector(data::DiscreteTimeData)::Vector{Float64}
