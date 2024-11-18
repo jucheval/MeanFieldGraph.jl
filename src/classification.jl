@@ -3,7 +3,7 @@
 
 Estimates the two underlying communities (one excitatory and one inhibitory) from the data set `data`. It returns a `Vector{Bool}` where the `true` coordinates correspond to excitatory components and `false` coordinates correspond to inhibitory components.
 """
-function classification(data::DiscreteTimeData)::@NamedTuple{naive::Vector{Bool}, kmeans::Vector{Bool}}
+function classification(data::DiscreteTimeData)::Vector{Bool}
     N, T = size(data)
     σ̂ = covariance_vector(data)
     output = cluster2bool(kmeans(transpose(σ̂), 2))
