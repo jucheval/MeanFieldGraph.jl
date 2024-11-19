@@ -1,6 +1,8 @@
 include("functions_estimation.jl")
 Random.seed!(1)
 
+## Informations for reproducibility
+
 ## Default values
 N = 500
 r₊ = .5
@@ -12,7 +14,7 @@ Nsimu = Int(1e3)
 
 # Specific values
 model = MarkovChainModel(β*λ,λ,p)
-Nsimu = 100
+Nsimu = 10
 T = Int(1e5)
 length_tvec = 100
 tmin = 10

@@ -1,6 +1,8 @@
 include("functions_classification.jl")
 Random.seed!(1)
 
+## Informations for reproducibility
+
 ## Default values
 r₊ = .5
 β = .5
@@ -8,7 +10,7 @@ r₊ = .5
 p = .5
 
 ## Specific values
-Nvec = 50:50:600
+Nvec = 10:10:200
 T = Int(1e5)
 length_tvec = 20
 tmin = 1000
@@ -25,8 +27,7 @@ begin
             data = rand(model, excitatory, T)
             for idt in eachindex(tvec)
                 tmpdata = data[1:tvec[idt]]
-                naive, kmeans = classification(tmpdata)
-                X[idt, idN] += (kmeans == excitatory)
+                X[idt, idN] += (classification(tmpdata) == excitatory)
             end
         end
     end
@@ -34,6 +35,13 @@ begin
 end
 
 using GLMakie
-fig = Figure()
-ax = Axis(fig[1, 1], xlabel = "T", ylabel = "N")
-hm = Makie.heatmap!(tvec, Nvec, X, interpolate = true)
+begin
+    fig = Figure()
+    ax = Axis(fig[1, 1], xlabel = "T", ylabel = "N", title = "Probability of exact recovery")
+    hm = Makie.heatmap!(tvec, Nvec, X, interpolate = true)
+    lines!(ax, 0:100:T, .5*sqrt.(0:100:T), color = :red)
+    Makie.xlims!(ax, tmin, T)
+    Colorbar(fig[:, end+1], hm)
+    fig
+end
+# line which correspond to T = 4*N^2
