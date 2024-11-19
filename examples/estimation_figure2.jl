@@ -1,4 +1,3 @@
-## Adapt the content of plots_p.jl with the mindset of classification_curves.jl
 include("functions_estimation.jl")
 using Logging
 using CSV
