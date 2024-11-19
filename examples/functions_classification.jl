@@ -4,7 +4,9 @@ using DataFrames
 using Random
 using Statistics
 using StatsPlots
+using Distributions
 
+## Simulation and computation of the estimators
 """
     classification_errors(model::MarkovChainModel, N::Int, r₊::Float64, Nsimu::Int, tvec::Vector{Int}, Δvec::Vector{Int})::Tuple{DataFrame, DataFrame}
 
@@ -30,12 +32,20 @@ function classification_errors(model::MarkovChainModel, N::Int, r₊::Float64, N
     return df
 end
 
-function classiferrorarray(Paramsymbol::Symbol, Paramvec, default_values, Nsimu, tvec)::Array{Float64}
-    output = Array{Float64}(undef, length(tvec), Nsimu, length(Paramvec), 2)
+"""
+    classiferrortable(Paramsymbol::Symbol, Paramvec, default_values::@NamedTuple{N::Int64, r₊::Float64, β::Float64, λ::Float64, p::Float64, Nsimu::Int64}, tvec)::DataFrame
 
+For each value of the parameter `Paramsymbol` prescribed via `Paramvec`, make `default_values.Nsimu` simulations of the mmodel, compute the classification at the observations times ``T`` given by `tvec` and the misclassification proportion. The fixed parameters are specified by the named tuple `default_values`.
+
+# Output
+One `DataFrame`: each parameter value correspond to `default_values.Nsimu * length(tvec)` rows. The last column gives the proportion of misclassification.
+"""
+function classiferrortable(Paramsymbol::Symbol, Paramvec, default_values::@NamedTuple{N::Int64, r₊::Float64, β::Float64, λ::Float64, p::Float64, Nsimu::Int64}, tvec)::DataFrame
     ## Set default
-    N, r₊, β, λ, p = default_values
-    
+    N, r₊, β, λ, p, Nsimu = default_values
+
+    A = Array{Float64}(undef, length(tvec), Nsimu, length(Paramvec))
+
     for idparam in eachindex(Paramvec)
         ## Set varying parameter
         if Paramsymbol == :N
@@ -55,60 +65,70 @@ function classiferrorarray(Paramsymbol::Symbol, Paramvec, default_values, Nsimu,
         data = rand(model, excitatory, T)
             for idt in eachindex(tvec)
                 tmpdata = data[1:tvec[idt]]
-                naive, kmeans = classification(tmpdata)
-                output[idt, idsimu, idparam, 1] = mean(abs.(naive - excitatory))
-                output[idt, idsimu, idparam, 2] = mean(abs.(kmeans - excitatory))
+                A[idt, idsimu, idparam] = mean(abs.(classification(tmpdata) - excitatory))
             end
         end
     end
-    return output
-end
-
-"""
-    classiferrortables(Paramsymbol::Symbol, Paramvec, default_values::@NamedTuple{N::Int64, r₊::Float64, β::Float64, λ::Float64, p::Float64, Nsimu::Int64}, tvec)::DataFrame
-
-For each value of the parameter `Paramsymbol` prescribed via `Paramvec`, compute the Monte Carlo estimate of the mean proportion of classification errors and the probability of exact recovery at the observations times ``T`` given by `tvec`. The fixed parameters and the number of simulations used in the Monte Carlo estimation are specified by the named tuple `default_values`.
-
-# Output
-One `DataFrame`: each parameter value correspond to `length(tvec)` rows. The last two columns give the mean proportion of classification errors and the probability of exact recovery.
-"""
-function classiferrortables(Paramsymbol::Symbol, Paramvec, default_values::@NamedTuple{N::Int64, r₊::Float64, β::Float64, λ::Float64, p::Float64, Nsimu::Int64}, tvec)::DataFrame
-    A = classiferrorarray(Paramsymbol::Symbol, Paramvec, default_values, default_values.Nsimu, tvec)
 
     Paramsymbol == :N ? Typeparam = Int : Typeparam = Float64
-    df = DataFrame(color = Int[], parameter = Typeparam[], T = Int[], 
-                    prop_errors_naive = Float64[], exact_recovery_naive = Float64[],
-                    prop_errors_kmeans = Float64[], exact_recovery_kmeans = Float64[],
-                    prop_errors_kmedoids = Float64[], exact_recovery_kmedoids = Float64[])
-    n1, n2, n3, n4 = size(A)
+    df = DataFrame(parameter = Typeparam[], T = Int[], prop_errors = Float64[])
+    n1, n2, n3 = size(A)
     for idparam in 1:n3
-        for idt in 1:n1
-            push!(df, (idparam, Paramvec[idparam], tvec[idt], 
-                        mean(A[idt,:,idparam,1]), mean(A[idt,:,idparam,1] .== 0),
-                        mean(A[idt,:,idparam,2]), mean(A[idt,:,idparam,2] .== 0),
-                        mean(A[idt,:,idparam,3]), mean(A[idt,:,idparam,3] .== 0)))
+        for idsimu in 1:n2 
+            for idt in 1:n1
+                push!(df, (Paramvec[idparam], tvec[idt], A[idt,idsimu,idparam]))
+            end
         end
     end
-    metadata!(df, "Varying parameter", String(Paramsymbol))
+    metadatacomplete!(df, Paramsymbol, default_values)
     return df
 end
 
-function plotclassification(df::DataFrame; type::String="none")
-    if type == "none"
-        for type in ["naive", "kmeans", "kmedoids"]
-            plotclassification(df, type)
-        end
-    else
-        plotclassification(df, type)
-    end
+function metadatacomplete!(df::DataFrame, Paramsymbol::Symbol, default_values::@NamedTuple{N::Int64, r₊::Float64, β::Float64, λ::Float64, p::Float64, Nsimu::Int64})
+    N, r₊, β, λ, p, Nsimu = default_values
+
+    metadata!(df, "Caption", "Proportion of misclassification")
+    Paramsymbol == :N || metadata!(df, "N", N, style=:note)
+    Paramsymbol == :r₊ || metadata!(df, "r₊", r₊, style=:note)
+    Paramsymbol == :β || metadata!(df, "β", β, style=:note)
+    Paramsymbol == :λ || metadata!(df, "λ", λ, style=:note)
+    Paramsymbol == :p || metadata!(df, "p", p, style=:note)
+    metadata!(df, "Number of simulations", Nsimu, style=:note)
+    colmetadata!(df, :T, "label", "Time horizon used for the estimation", style=:note)
+    metadata!(df, "Varying parameter", String(Paramsymbol), style=:note)
+    colmetadata!(df, :parameter, "label", "Value of the varying parameter", style=:note)
 end
 
-function plotclassification(df::DataFrame, type::String)
+## Post simulation operations : computation of the errors
+function proportion2errors(df::DataFrame)
+    output = empty(df)
+    select!(output, Not(3))
+    output[!,:mean_prop] .= 0.
+    output[!,:mean_prop_std] .= 0.
+    output[!,:proba_exact_recovery] .= 0.
+    output[!,:proba_exact_recovery_std] .= 0.
+
+    for param in unique(df.parameter)
+        for t in unique(df.T) 
+            selection = (df.parameter .== param) .* (df.T .== t)
+            push!(output, (param, t, mean(df.prop_errors[selection]), std(df.prop_errors[selection]), mean(df.prop_errors[selection] .== 0), std(df.prop_errors[selection] .== 0)))
+        end
+    end
+    metadata!(output, "Caption", "Mean proportion of misclassification and probability of exact recovery")
+    return output
+end
+
+## Plot functions
+function plotclassification(df::DataFrame)
+    paramvec = unique(df.parameter)
     paramstring = metadata(df, "Varying parameter")
-    pestring = "prop_errors_"*type
-    erstring = "exact_recovery_"*type
-    plot(df.T, df[!,pestring], group=df.parameter, color=df.color)
+    Nsimu = metadata(df, "Number of simulations")
+    col = indexin(df.parameter,paramvec)
+    q = quantile(Normal(), 0.975)
+
+    plot(df.T, df.mean_prop, group=df.parameter, color=col; ribbon = q*df.mean_prop_std/sqrt(Nsimu))
     xlabel!("T")
-    title!("Classification error as "*paramstring*" varies - "*type)
-    display(plot!(df.T, df[!,erstring], group=df.parameter, color=df.color, label=false, linestyle = :dash))
+    ylims!(0,1)
+    title!("Misclassification (solid) and recovery (dashed) as "*paramstring*" varies")
+    display(plot!(df.T, df.proba_exact_recovery, group=df.parameter, color=col, label=false, linestyle = :dash; ribbon = q*df.proba_exact_recovery_std/sqrt(Nsimu)))
 end
