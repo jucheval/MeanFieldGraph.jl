@@ -6,7 +6,8 @@ Estimates the two underlying communities (one excitatory and one inhibitory) fro
 function classification(data::DiscreteTimeData)::Vector{Bool}
     N, T = size(data)
     σ̂ = covariance_vector(data)
-    output = cluster2bool(kmeans(transpose(σ̂), 2))
+    initialisation = [argmin(σ̂), argmax(σ̂)]
+    output = cluster2bool(kmeans(transpose(σ̂), 2, init=initialisation))
     return output
 end
 
