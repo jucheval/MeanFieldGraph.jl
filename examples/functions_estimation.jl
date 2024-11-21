@@ -250,3 +250,32 @@ function plotestimators(dfs::Tuple{DataFrame,DataFrame,DataFrame}, dfs_inf::Tupl
         display(title!("Estimation error for "*targetstring*" as "*paramstring*" varies, Δ="*string(metadata(df,"Δ"))))
     end
 end
+
+## Save and Load functions
+function simulationandsave(Paramsymbol::Symbol, Paramvec, default_values::@NamedTuple{N::Int64, r₊::Float64, β::Float64, λ::Float64, p::Float64, Δ::Int64, Nsimu::Int64}, tvec)
+    df, df_inf = estimatorstable(Paramsymbol, Paramvec, default_values, tvec)
+    paramstring = string(Paramsymbol)
+
+    CSV.write("data/estimators_vary_"*paramstring*"_delta_"*string(default_values.Δ)*".csv", df)
+    open("data/estimators_vary_"*paramstring*"_delta_"*string(default_values.Δ)*".toml", "w") do io
+        print(io, meta2toml(df))
+    end
+
+    CSV.write("data/estimators_vary_"*paramstring*"_delta_"*string(default_values.Δ)*"_inf.csv", df_inf)
+    open("data/estimators_vary_"*paramstring*"_delta_"*string(default_values.Δ)*"_inf.toml", "w") do io
+        print(io, meta2toml(df_inf))
+    end
+end
+
+function estimatorsload(filename::String)
+    df = CSV.read(filename*".csv", DataFrame)
+    open(filename*".toml") do io
+        toml2meta!(df, io)
+    end
+    df_inf = CSV.read(filename*"_inf.csv", DataFrame)
+    open(filename*"_inf.toml") do io
+        toml2meta!(df_inf, io)
+    end
+
+    return df, df_inf
+end
