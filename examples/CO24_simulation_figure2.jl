@@ -9,7 +9,7 @@ r₊ = .5,
 β = .5,
 λ = .5,
 p = .5,
-Nsimu = Int(1e1))
+Nsimu = Int(1e3))
 
 # Specific values
 Nvec = 10:12:250
