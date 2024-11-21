@@ -8,12 +8,12 @@ begin # Load
     open("data/estimators_vary_Δ_inf.toml") do io
         toml2meta!(df_inf, io)
     end
-end
+end;
 
 begin # Compute absolute errors and medians
     errors, errors_inf = estimators2errors.((df, df_inf))
     q50, q50_inf = columnquantile.((errors, errors_inf), .5)
-end
+end;
 
 begin # Left plot 
     selection = (q50.parameter .== 0)
@@ -26,7 +26,7 @@ begin # Left plot
     ylims!(1e-4, 1)
     ylabel!("absolute error")
     title!("Estimation error for all parameters, Δ=NaN")
-end
+end;
 
 begin # Right plot 
     selection = (q50.parameter .== 1)
@@ -39,4 +39,4 @@ begin # Right plot
     ylims!(1e-4, 1)
     ylabel!("absolute error")
     title!("Estimation error for all parameters, Δ=1")
-end
+end;
