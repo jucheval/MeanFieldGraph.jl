@@ -4,7 +4,7 @@ import Base.rand
 function rand(graph::ErdosRenyiGraph)::Matrix{Bool}
     N = graph.N
     p = graph.p
-    Adj = rand(Bernoulli(p), (N, N))
+    Adj = rand(Bernoulli(p), N, N)
     return(Adj)
 end
 

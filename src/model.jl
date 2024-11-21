@@ -77,7 +77,7 @@ end
 # constructors
 
 # methods
-length(data::DiscreteTimeData) = size(data.X, 2)
+length(data::DiscreteTimeData) = size(data.X)[2]
 size(data::DiscreteTimeData) = size(data.X)
 getindex(data::DiscreteTimeData, range::UnitRange) = DiscreteTimeData(data.X[:,range])
 
