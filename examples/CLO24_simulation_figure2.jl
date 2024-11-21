@@ -11,7 +11,7 @@ r₊ = .5,
 λ = .5,
 p = .5,
 Δ = 1,
-Nsimu = Int(1e1))
+Nsimu = Int(1e3))
 
 # Specific values
 T = Int(1e3)
