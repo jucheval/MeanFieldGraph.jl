@@ -5,6 +5,8 @@ using Random
 using Statistics
 using StatsPlots
 using Distributions
+using CSV
+using TableMetadataTools
 
 ## Simulation and computation of the estimators
 """
@@ -131,4 +133,32 @@ function plotclassification(df::DataFrame)
     ylims!(0,1)
     title!("Misclassification (solid) and recovery (dashed) as "*paramstring*" varies")
     display(plot!(df.T, df.proba_exact_recovery, group=df.parameter, color=col, label=false, linestyle = :dash; ribbon = q*df.proba_exact_recovery_std/sqrt(Nsimu)))
+end
+
+## Save and Load functions
+function simulationandsave(Paramsymbol::Symbol, Paramvec, default_values::@NamedTuple{N::Int64, r₊::Float64, β::Float64, λ::Float64, p::Float64, Nsimu::Int64}, tvec)
+    df = classiferrortable(Paramsymbol, Paramvec, default_values, tvec)
+    paramstring = string(Paramsymbol)
+
+    CSV.write("data/CO24/classification_vary_"*paramstring*".csv", df)
+    open("data/CO24/classification_vary_"*paramstring*".toml", "w") do io
+        print(io, meta2toml(df))
+    end
+end
+
+function estimatorsload(filename::String)
+    df = CSV.read(filename*".csv", DataFrame)
+    open(filename*".toml") do io
+        toml2meta!(df, io)
+    end
+
+    if !(isfile("data/CO24/classification_vary_"*paramstring*"_inf.csv"))
+        return df
+    end
+    df_inf = CSV.read(filename*"_inf.csv", DataFrame)
+    open(filename*"_inf.toml") do io
+        toml2meta!(df_inf, io)
+    end
+
+    return df, df_inf
 end
