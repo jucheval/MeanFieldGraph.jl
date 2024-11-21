@@ -12,7 +12,8 @@ begin
     ax = Axis(fig[1, 1], xlabel = "T", ylabel = "N", title = "Probability of exact recovery")
     hm = Makie.heatmap!(T, N, proba, interpolate = true)
     lines!(ax, 0:100:T[end], sqrt.(0:100:T[end]), color = :red)
-    Makie.xlims!(ax, tmin, T[end])
+    Makie.xlims!(ax, T[1], T[end])
+    Makie.ylims!(ax, N[1], N[end])
     Colorbar(fig[:, end+1], hm)
     fig
 end
