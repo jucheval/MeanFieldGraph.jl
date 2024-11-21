@@ -281,6 +281,10 @@ function estimatorsload(filename::String)
     open(filename*".toml") do io
         toml2meta!(df, io)
     end
+
+    if !(isfile("data/CO24/classification_vary_"*paramstring*"_inf.csv"))
+        return df
+    end
     df_inf = CSV.read(filename*"_inf.csv", DataFrame)
     open(filename*"_inf.toml") do io
         toml2meta!(df_inf, io)
