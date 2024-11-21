@@ -204,10 +204,10 @@ function columnquantile(df::DataFrame, q::Real)
 end
 
 ## Plot functions
-function plotestimators(df::DataFrame, df_inf::DataFrame; targetstring::String="all")
+function ploterrors(df::DataFrame, df_inf::DataFrame; targetstring::String="all")
     if targetstring == "all"
         for ts in ["m̂","v̂","ŵ","μ̂","λ̂","p̂"]
-            plotestimators(df, df_inf; targetstring = ts)
+            ploterrors(df, df_inf; targetstring = ts)
         end
     else
         targetstring = Unicode.normalize(targetstring)
@@ -223,10 +223,10 @@ function plotestimators(df::DataFrame, df_inf::DataFrame; targetstring::String="
     end
 end
 
-function plotestimators(dfs::Tuple{DataFrame,DataFrame,DataFrame}, dfs_inf::Tuple{DataFrame,DataFrame,DataFrame}; targetstring::String="all")
+function ploterrors(dfs::Tuple{DataFrame,DataFrame,DataFrame}, dfs_inf::Tuple{DataFrame,DataFrame,DataFrame}; targetstring::String="all")
     if targetstring == "all"
         for ts in ["m̂","v̂","ŵ","μ̂","λ̂","p̂"]
-            plotestimators(dfs, dfs_inf; targetstring = ts)
+            ploterrors(dfs, dfs_inf; targetstring = ts)
         end
     else
         dflow, df, dfup = dfs
@@ -241,7 +241,7 @@ function plotestimators(dfs::Tuple{DataFrame,DataFrame,DataFrame}, dfs_inf::Tupl
             push!(dflowup_inf, (Tmax, param, Array(dflow_inf[dflow_inf.parameter .== param, Not(1)])...))
             push!(dflowup_inf, (Tmax, param, Array(dfup_inf[dfup_inf.parameter .== param, Not(1)])...))
         end
-        plot(df.T, df[:,targetstring], group=df.parameter, color=indexin(df.parameter,paramvec); ribbon = (dflow[:,targetstring], dfup[:,targetstring]))
+        plot(df.T, df[:,targetstring], group=df.parameter, color=indexin(df.parameter,paramvec); ribbon = (df[:,targetstring] .- dflow[:,targetstring], dfup[:,targetstring] .- df[:,targetstring]))
         scatter!(maximum(df.T)*ones(size(df_inf)[1]), df_inf[:,targetstring], group=df_inf.parameter, color=indexin(df_inf.parameter,paramvec), marker = :hline, label=false, markerstrokewidth = 2)
         plot!(dflowup_inf.T, dflowup_inf[:,targetstring], group=dflowup_inf.parameter, color=indexin(dflowup_inf.parameter,paramvec), label=false)
         xlabel!("T")
@@ -249,6 +249,15 @@ function plotestimators(dfs::Tuple{DataFrame,DataFrame,DataFrame}, dfs_inf::Tupl
         ylabel!("Absolute error")
         display(title!("Estimation error for "*targetstring*" as "*paramstring*" varies, Δ="*string(metadata(df,"Δ"))))
     end
+end
+
+function plotestimatorserrors(df::DataFrame, df_inf::DataFrame; quantiles::Tuple{Real,Real}=(.5,.5))
+    plow, pup = quantiles
+    errors, errors_inf = estimators2errors.((df, df_inf))
+    q50, q50_inf = columnquantile.((errors, errors_inf), .5)
+    qlow, qlow_inf = columnquantile.((errors, errors_inf), plow)
+    qup, qup_inf = columnquantile.((errors, errors_inf), pup)
+    ploterrors((qlow, q50, qup), (qlow_inf, q50_inf, qup_inf))
 end
 
 ## Save and Load functions
