@@ -265,13 +265,13 @@ function simulationandsave(Paramsymbol::Symbol, Paramvec, default_values::@Named
     df, df_inf = estimatorstable(Paramsymbol, Paramvec, default_values, tvec)
     paramstring = string(Paramsymbol)
 
-    CSV.write("data/estimators_vary_"*paramstring*"_delta_"*string(default_values.Δ)*".csv", df)
-    open("data/estimators_vary_"*paramstring*"_delta_"*string(default_values.Δ)*".toml", "w") do io
+    CSV.write("data/CLO24/estimators_vary_"*paramstring*"_delta_"*string(default_values.Δ)*".csv", df)
+    open("data/CLO24/estimators_vary_"*paramstring*"_delta_"*string(default_values.Δ)*".toml", "w") do io
         print(io, meta2toml(df))
     end
 
-    CSV.write("data/estimators_vary_"*paramstring*"_delta_"*string(default_values.Δ)*"_inf.csv", df_inf)
-    open("data/estimators_vary_"*paramstring*"_delta_"*string(default_values.Δ)*"_inf.toml", "w") do io
+    CSV.write("data/CLO24/estimators_vary_"*paramstring*"_delta_"*string(default_values.Δ)*"_inf.csv", df_inf)
+    open("data/CLO24/estimators_vary_"*paramstring*"_delta_"*string(default_values.Δ)*"_inf.toml", "w") do io
         print(io, meta2toml(df_inf))
     end
 end

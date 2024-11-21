@@ -1,11 +1,11 @@
 include("functions_estimation.jl")
 begin # Load 
-    df = CSV.read("data/estimators_vary_Δ.csv", DataFrame)
-    open("data/estimators_vary_Δ.toml") do io
+    df = CSV.read("data/CLO24/estimators_vary_Δ.csv", DataFrame)
+    open("data/CLO24/estimators_vary_Δ.toml") do io
         toml2meta!(df, io)
     end
-    df_inf = CSV.read("data/estimators_vary_Δ_inf.csv", DataFrame)
-    open("data/estimators_vary_Δ_inf.toml") do io
+    df_inf = CSV.read("data/CLO24/estimators_vary_Δ_inf.csv", DataFrame)
+    open("data/CLO24/estimators_vary_Δ_inf.toml") do io
         toml2meta!(df_inf, io)
     end
 end;

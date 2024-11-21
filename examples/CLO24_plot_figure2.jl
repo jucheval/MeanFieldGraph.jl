@@ -11,25 +11,25 @@ pup = .75
 
 # N varies
 paramstring = "N"
-df, df_inf = estimatorsload("data/estimators_vary_"*paramstring*"_delta_1")
+df, df_inf = estimatorsload("data/CLO24/estimators_vary_"*paramstring*"_delta_1")
 plotestimatorserrors(df, df_inf)
 
 # r₊ varies
 paramstring = "r₊"
-df, df_inf = estimatorsload("data/estimators_vary_"*paramstring*"_delta_1")
+df, df_inf = estimatorsload("data/CLO24/estimators_vary_"*paramstring*"_delta_1")
 plotestimatorserrors(df, df_inf)
 
 # β varies
 paramstring = "β"
-df, df_inf = estimatorsload("data/estimators_vary_"*paramstring*"_delta_1")
+df, df_inf = estimatorsload("data/CLO24/estimators_vary_"*paramstring*"_delta_1")
 plotestimatorserrors(df, df_inf)
 
 # λ varies
 paramstring = "λ"
-df, df_inf = estimatorsload("data/estimators_vary_"*paramstring*"_delta_1")
+df, df_inf = estimatorsload("data/CLO24/estimators_vary_"*paramstring*"_delta_1")
 plotestimatorserrors(df, df_inf)
 
 # p varies
 paramstring = "p"
-df, df_inf = estimatorsload("data/estimators_vary_"*paramstring*"_delta_1")
+df, df_inf = estimatorsload("data/CLO24/estimators_vary_"*paramstring*"_delta_1")
 plotestimatorserrors(df, df_inf)
