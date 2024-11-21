@@ -128,7 +128,7 @@ function plotclassification(df::DataFrame)
     col = indexin(df.parameter,paramvec)
     q = quantile(Normal(), 0.975)
 
-    plot(df.T, df.mean_prop, group=df.parameter, color=col; ribbon = q*df.mean_prop_std/sqrt(Nsimu))
+    plot(df.T, df.mean_prop, group=df.parameter, color=col; ribbon = df.mean_prop_std)
     xlabel!("T")
     ylims!(0,1)
     title!("Misclassification (solid) and recovery (dashed) as "*paramstring*" varies")
