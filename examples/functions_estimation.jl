@@ -141,7 +141,7 @@ function estimators2errors(df::DataFrame)::DataFrame
     paramstring == "p" || (p = metadata(df,"p"))
     paramstring == "r₊" || (r₊ = metadata(df, "r₊"))
     if !(paramstring in ["β", "λ", "p", "r₊"])
-        model = MarkovChainModel(β, λ, p)
+        model = MarkovChainModel(β*λ, λ, p)
         m, v, w = mvw(model, r₊)
         output.m̂ = abs.(df.m̂ .- m)
         output.v̂ = abs.(df.v̂ .- v)
@@ -156,7 +156,7 @@ function estimators2errors(df::DataFrame)::DataFrame
             paramstring == "p" && (p = param)
             paramstring == "r₊" && (r₊ = param)
 
-            model = MarkovChainModel(β, λ, p)
+            model = MarkovChainModel(β*λ, λ, p)
             m, v, w = mvw(model, r₊)
             selection = (df.parameter .== param)
             output[selection,2+b] = abs.(df[selection,:].m̂ .- m)
