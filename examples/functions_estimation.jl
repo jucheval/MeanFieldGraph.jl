@@ -5,6 +5,8 @@ using Random
 using Statistics
 using StatsPlots
 using Unicode
+using CSV
+using TableMetadataTools
 
 ## Simulation and computation of the estimators
 """
