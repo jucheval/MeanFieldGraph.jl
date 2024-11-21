@@ -8,7 +8,7 @@ using Unicode
 
 ## Simulation and computation of the estimators
 """
-    estimatorsarray(model::MarkovChainModel, N::Int, r₊::Float64, Nsimu::Int, tvec::Vector{Int}, Δvec::Vector{Int}; i::Int=1, imax::Int=1)::Tuple{Array{Float64, 4}, Array{Float64, 2}}
+    estimatorsarray(model::MarkovChainModel, N::Int, r₊::Float64, Nsimu::Int, tvec::Vector{Int}, Δvec::Vector{Int}; id::Int=1, idmax::Int=1)::Tuple{Array{Float64, 4}, Array{Float64, 2}}
 
 Simulate 'Nsimu' times the prescribed model and compute each time the estimators ``\\hat{m}``, ``\\hat{v}`` and ``\\hat{w}`` at the observations times ``T`` given by the increasing vector `tvec` (and ``T\\to \\infty``) and the tuning parameters ``\\Delta`` given by `Δvec`.
 
@@ -20,14 +20,14 @@ Two `Array`s :
 # Keywords
 They are only used for progress logging.
 """
-function estimatorsarray(model::MarkovChainModel, N::Int, r₊::Float64, Nsimu::Int, tvec::Vector{Int}, Δvec::Vector{Int}; i::Int=1, imax::Int=1)::Tuple{Array{Float64, 4}, Array{Float64, 2}}
+function estimatorsarray(model::MarkovChainModel, N::Int, r₊::Float64, Nsimu::Int, tvec::Vector{Int}, Δvec::Vector{Int}; id::Int=1, idmax::Int=1)::Tuple{Array{Float64, 4}, Array{Float64, 2}}
     E = Array{Float64}(undef, 6, length(Δvec), length(tvec), Nsimu)
     E_inf = Array{Float64}(undef, 6, Nsimu)
     
     excitatory = MeanFieldGraph.N2excitatory(N, r₊)
     T = tvec[end]
 
-    @progress "estimatorstable, i="*string(i)*" on "*string(imax) for idsimu in 1:Nsimu
+    @progress "estimatorstable, i="*string(id)*" on "*string(idmax) for idsimu in 1:Nsimu
         θ = rand(MeanFieldGraph.ErdosRenyiGraph(N, model.p))
         modelconnec = MarkovChainConnectivity(model,θ)
 
@@ -74,7 +74,7 @@ function estimatorstable(Paramsymbol::Symbol, Paramvec, default_values::@NamedTu
                 p = Paramvec[idparam]
             end
             model = MarkovChainModel(β*λ,λ,p)
-            E_new, E_inf_new = estimatorsarray(model, N, r₊, Nsimu, tvec, [Δ]; i=idparam, imax=length(Paramvec))
+            E_new, E_inf_new = estimatorsarray(model, N, r₊, Nsimu, tvec, [Δ]; id=idparam, idmax=length(Paramvec))
             E[:,:,:,idparam] = E_new[:,1,:,:]
             E_inf[:,:,idparam] = E_inf_new
         end
