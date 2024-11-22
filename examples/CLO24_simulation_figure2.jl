@@ -1,6 +1,6 @@
 include("functions_estimation.jl")
 using Logging
-Random.seed!(1)
+
 
 ## Informations for reproducibility
 # This file was created after the publication of https://hal.science/hal-04609972v1.
@@ -28,8 +28,13 @@ tvec = floor.(Int,collect(range(tmin,T,length_tvec)))
 disable_logging(LogLevel(-1001))  # Enables debug info
 
 # Simulation and saving
+Random.seed!(1)
 simulationandsave(:N, [100, 1000, 2000], default_values, tvec)
+Random.seed!(1)
 simulationandsave(:r₊, [.1, .4, .6, .9], default_values, tvec)
+Random.seed!(1)
 simulationandsave(:β, [.1, .4, .6, .9], default_values, tvec)
+Random.seed!(1)
 simulationandsave(:λ, [.1, .4, .6, .9], default_values, tvec)
+Random.seed!(1)
 simulationandsave(:p, [.1, .4, .6, .9], default_values, tvec)

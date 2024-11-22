@@ -1,5 +1,4 @@
 include("functions_estimation.jl")
-Random.seed!(1)
 
 ## Informations for reproducibility
 # This file was created after the publication of https://hal.science/hal-04609972v1.
@@ -21,7 +20,7 @@ length_tvec = 100
 tmin = 10
 tvec = floor.(Int,collect(range(tmin,T,length_tvec)))
 
-
+Random.seed!(1)
 begin   # Simulation 
     Δvec = [0,1]
     df, df_inf = estimatorstable(:Δ, Δvec, default_values, tvec)

@@ -1,5 +1,5 @@
 include("functions_classification.jl")
-Random.seed!(1)
+
 
 ## Informations for reproducibility
 
@@ -18,6 +18,7 @@ length_tvec = 20
 tmin = 10
 tvec = floor.(Int,collect(range(tmin, T, length_tvec)))
 
+Random.seed!(1)
 begin # Simulation
     df = classiferrortable(:N, Nvec, default_values, tvec)
 
