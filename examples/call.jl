@@ -17,22 +17,6 @@ m,v,w = mvw(model, r₊)
 
 MeanFieldGraph.Φ(m,v,w,r₊)
 
-
-# The naive classification of the neurons by the difference between the activity after a 0 and after a 1,
-# can work
-excitatory = MeanFieldGraph.N2excitatory(N, r₊)
-T = Int(1e6)
-data = rand(model, excitatory, T)
-begin
-    id = 145
-    time0 = pushfirst!(data.X[id, 1:(end-1)] .== 0, false)
-    mean0 = mean(data.X[:, time0])
-    time1 = pushfirst!(data.X[id, 1:(end-1)] .== 1, false)
-    mean1 = mean(data.X[:, time1])
-    println(mean0 - mean1)
-end
-
-
 ## Typical range of parameters
 # firing rate between 10 and 100 Hz -> 50 Hz
 # time bin : 2 ms -> m should be close to 0.1
@@ -66,7 +50,4 @@ for (λ, p) in Iterators.product(.1:.1:.9,.1:.1:.9)
     β < 0 && break
     println((1-λ)*p)
     model = DiscreteHawkesModel(λ*β, λ, p)
-    # Refaire la fonction errortables pour y mettre uniquement les estimateurs m,v,w pour chaque simulation.
-    # Tout écrire avec les seed de Random plutôt que de faire des CSV
-    #df, df_inf = errortables(:β, type, [0], Nsimu, tvec, Δ)
 end
