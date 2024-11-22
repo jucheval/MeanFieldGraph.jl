@@ -7,6 +7,7 @@ using StatsPlots
 using Distributions
 using CSV
 using TableMetadataTools
+using LaTeXStrings
 
 ## Simulation and computation of the estimators
 """
@@ -127,11 +128,13 @@ function plotclassification(df::DataFrame)
     Nsimu = metadata(df, "Number of simulations")
     col = indexin(df.parameter,paramvec)
     q = quantile(Normal(), 0.975)
+    
+    paramstring == "r₊" && (paramstring = "r_+") # modified before passing to latexstring
 
     plot(df.T, df.mean_prop, group=df.parameter, color=col; ribbon = df.mean_prop_std)
-    xlabel!("T")
+    xlabel!(L"T")
     ylims!(0,1)
-    title!("Misclassification (solid) and recovery (dashed) as "*paramstring*" varies")
+    title!("Misclassification and exact recovery as "*latexstring(paramstring)*" varies")
     display(plot!(df.T, df.proba_exact_recovery, group=df.parameter, color=col, label=false, linestyle = :dash; ribbon = q*df.proba_exact_recovery_std/sqrt(Nsimu)))
 end
 
