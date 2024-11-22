@@ -1,6 +1,11 @@
 include("functions_classification.jl")
 
-df = estimatorsload("data/CO24/data_for_color_plot.csv")
+begin # Load
+    df = CSV.read("data/CO24/data_for_color_plot.csv", DataFrame)
+    open("data/CO24/data_for_color_plot.toml") do io
+        toml2meta!(df, io)
+    end
+end;
 errors_and_std = proportion2errors(df)
 T = errors_and_std.T
 N = errors_and_std.parameter
