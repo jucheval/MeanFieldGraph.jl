@@ -2,6 +2,9 @@ include("functions_estimation.jl")
 Random.seed!(1)
 
 ## Informations for reproducibility
+# This file was created after the publication of https://hal.science/hal-04609972v1.
+# Hence, the data created via this file and the associated plots are not exactly those appearing in the article.
+# Nevertheless, they are rather similar.
 
 ## Default values
 default_values = (N = 500,

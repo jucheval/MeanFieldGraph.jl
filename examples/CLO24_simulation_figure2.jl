@@ -3,6 +3,12 @@ using Logging
 Random.seed!(1)
 
 ## Informations for reproducibility
+# This file was created after the publication of https://hal.science/hal-04609972v1.
+# Hence, the data created via this file and the associated plots are not exactly those appearing in the article.
+# Nevertheless, they are rather similar.
+
+# The time consuming part are the five calls of the function "simulationandsave".
+# The random seed is reset after each call so that they can be applied separately.
 
 ## Default values
 default_values = (N = 500,
