@@ -11,3 +11,6 @@ deps/downloads/
 deps/src/
 deps/usr/
 docs/site/
+.vscode/
+data/
+plots/

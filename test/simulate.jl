@@ -19,15 +19,15 @@
         λ = .3 + .7*rand()
         μ = β*λ
         θ = rand(MF.ErdosRenyiGraph(4,rand()))
-        Z = [true,true,false,false]
+        excitatory = [true,true,false,false]
         model = MF.MarkovChainConnectivity(MarkovChainModel(μ, λ, 0.), θ)
         
         mhat = zeros(4)
         for i in 1:Nsimu
-            mhat += MF.stationary_initial_condition(model, Z)/Nsimu
+            mhat += MF.stationary_initial_condition(model, excitatory)/Nsimu
         end
 
-        A = 1/4 * (θ .* transpose(-1 .+ 2*Z))
+        A = 1/4 * (θ .* transpose(-1 .+ 2*excitatory))
         Q = inv(I - (1-λ)*A)
         L⁻ = sum(A[:,3:4],dims=2)
         mtheo = μ*Q*ones(4) - (1-λ)*Q*L⁻
@@ -42,13 +42,13 @@
         λ = .2 + .8*rand()
         μ = β*λ
         θ = rand(MF.ErdosRenyiGraph(4,rand()))
-        Z = [true,true,false,false]
+        excitatory = [true,true,false,false]
         model = MF.MarkovChainConnectivity(MarkovChainModel(μ, λ, 0.), θ)
         
-        data = rand(model, Z, Tsimu)
+        data = rand(model, excitatory, Tsimu)
         mhat = mean(data.X, dims=2)
 
-        A = 1/4 * (θ .* transpose(-1 .+ 2*Z))
+        A = 1/4 * (θ .* transpose(-1 .+ 2*excitatory))
         Q = inv(I - (1-λ)*A)
         L⁻ = sum(A[:,3:4],dims=2)
         mtheo = μ*Q*ones(4) - (1-λ)*Q*L⁻

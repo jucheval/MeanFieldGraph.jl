@@ -17,19 +17,19 @@ function estimators(data::DiscreteTimeData, Δ::Int=floor(Int,log(length(data)))
     N, T = size(data)
     X = data.X
 
-    ΣX_T = sum(X; dims=2)
-    ΣX̄_T = mean(ΣX_T)
-    m̂ = ΣX̄_T/T
-    v̂ = (N)*(T+1)*T^(-3)*( mean(ΣX_T.^2) - T/(T+1)*(ΣX̄_T + ΣX̄_T^2) )
-    ZΔ = 0
+    Z_T = sum(X; dims=2)
+    Z̄_T = mean(Z_T)
+    m̂ = Z̄_T/T
+    v̂ = (N)*(T+1)*T^(-3)*( mean(Z_T.^2) - T/(T+1)*(Z̄_T + Z̄_T^2) )
+    WΔ = 0
     for iter in 1:div(T,Δ)
-        ZΔ += (N)/T * (sum(X[:,(1+(iter-1)*Δ):(iter*Δ)])/(N) - Δ*m̂)^2
+        WΔ += (N)/T * (sum(X[:,(1+(iter-1)*Δ):(iter*Δ)])/(N) - Δ*m̂)^2
     end
-    Z2Δ = 0
+    W2Δ = 0
     for iter in 1:div(T,2*Δ)
-        Z2Δ += (N)/T * (sum(X[:,(1+(iter-1)*2*Δ):(iter*2*Δ)])/(N) - 2*Δ*m̂)^2
+        W2Δ += (N)/T * (sum(X[:,(1+(iter-1)*2*Δ):(iter*2*Δ)])/(N) - 2*Δ*m̂)^2
     end
-    ŵ = 2*Z2Δ - ZΔ
+    ŵ = 2*W2Δ - WΔ
 
     return (m̂, v̂, ŵ)
 end
@@ -38,24 +38,24 @@ function estimators(data::DiscreteTimeData, Δvec::Vector{Int})::Tuple{Float64, 
     N, T = size(data)
     X = data.X
 
-    ΣX_T = sum(X; dims=2)
-    ΣX̄_T = mean(ΣX_T)
-    m̂ = ΣX̄_T/T
-    v̂ = (N)*(T+1)*T^(-3)*( mean(ΣX_T.^2) - T/(T+1)*(ΣX̄_T + ΣX̄_T^2) )
+    Z_T = sum(X; dims=2)
+    Z̄_T = mean(Z_T)
+    m̂ = Z̄_T/T
+    v̂ = (N)*(T+1)*T^(-3)*( mean(Z_T.^2) - T/(T+1)*(Z̄_T + Z̄_T^2) )
     ŵ = Float64[]
     for Δ in Δvec
         if Δ == 0
             Δ=floor(Int,log(length(data)))
         end
-        ZΔ = 0
+        WΔ = 0
         for iter in 1:div(T,Δ)
-            ZΔ += (N)/T * (sum(X[:,(1+(iter-1)*Δ):(iter*Δ)])/(N) - Δ*m̂)^2
+            WΔ += (N)/T * (sum(X[:,(1+(iter-1)*Δ):(iter*Δ)])/(N) - Δ*m̂)^2
         end
-        Z2Δ = 0
+        W2Δ = 0
         for iter in 1:div(T,2*Δ)
-            Z2Δ += (N)/T * (sum(X[:,(1+(iter-1)*2*Δ):(iter*2*Δ)])/(N) - 2*Δ*m̂)^2
+            W2Δ += (N)/T * (sum(X[:,(1+(iter-1)*2*Δ):(iter*2*Δ)])/(N) - 2*Δ*m̂)^2
         end
-        push!(ŵ, 2*Z2Δ - ZΔ)
+        push!(ŵ, 2*W2Δ - WΔ)
     end
 
     return (m̂, v̂, ŵ)
@@ -75,6 +75,7 @@ function fit(::Type{MarkovChainModel}, data::DiscreteTimeData, r₊::Float64; Δ
     μ, λ, p = Φ(m̂, v̂, ŵ, r₊)
     return MarkovChainModel(μ, λ, p)
 end
+
 
 ## Auxiliary functions
 function ϕ(m,v,w_or_d,r₊)::Tuple{Float64,Float64}
