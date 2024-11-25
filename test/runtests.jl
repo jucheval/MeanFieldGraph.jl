@@ -2,6 +2,7 @@ using MeanFieldGraph
 using Test
 using Distributions, LinearAlgebra
 using Random
+using Clustering
 import MeanFieldGraph as MF
 
 @testset "MeanFieldGraph.jl" begin
