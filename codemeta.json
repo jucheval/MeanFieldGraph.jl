@@ -1,0 +1,43 @@
+{
+    "@context": "https://w3id.org/codemeta/3.0",
+    "type": "SoftwareSourceCode",
+    "applicationCategory": "Statistics",
+    "author": [
+        {
+            "id": "https://orcid.org/0000-0002-0736-8487",
+            "type": "Person",
+            "affiliation": {
+                "type": "Organization",
+                "name": "Université Grenoble Alpes"
+            },
+            "email": "julien.chevallier1@univ-grenoble-alpes.fr",
+            "familyName": "Chevallier",
+            "givenName": "Julien"
+        },
+        {
+            "type": "Role",
+            "schema:author": "https://orcid.org/0000-0002-0736-8487",
+            "roleName": "Developer",
+            "startDate": "2024-07-01"
+        }
+    ],
+    "codeRepository": "https://github.com/jucheval/MeanFieldGraph.jl",
+    "dateCreated": "2024-07-01",
+    "dateModified": "2024-07-08",
+    "datePublished": "2024-07-01",
+    "description": "A Julia package devoted to the estimation of the connectivity parameter of a latent (non sparse) high dimensional graph. The data are assumed to come from a model with mean field interaction driven by the latent graph.",
+    "funder": {
+        "type": "Organization",
+        "name": "Université Grenoble Alpes"
+    },
+    "keywords": [
+        "mean field",
+        "Markov chain",
+        "Hawkes process"
+    ],
+    "license": "https://spdx.org/licenses/MIT",
+    "name": "MeanFieldGraph.jl",
+    "programmingLanguage": "Julia",
+    "version": "0.1.0",
+    "developmentStatus": "active"
+}
