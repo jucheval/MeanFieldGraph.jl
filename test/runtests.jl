@@ -8,4 +8,5 @@ import MeanFieldGraph as MF
     include("model.jl")
     include("simulate.jl")
     include("estimation.jl")
+    include("classification.jl")
 end
