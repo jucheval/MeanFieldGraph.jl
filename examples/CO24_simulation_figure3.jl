@@ -1,6 +1,7 @@
 include("functions_classification.jl")
 
 ## Informations for reproducibility
+# gitcommit : e01748726f8295d48d30155bb376f073d2f7fd34
 
 ## Default values
 default_values = (N = 50,
