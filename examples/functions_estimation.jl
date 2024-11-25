@@ -242,8 +242,8 @@ function ploterrors(dfs::Tuple{DataFrame,DataFrame,DataFrame}, dfs_inf::Tuple{Da
             push!(dflowup_inf, (Tmax, param, Array(dfup_inf[dfup_inf.parameter .== param, Not(1)])...))
         end
         plot(df.T, df[:,targetstring], group=df.parameter, color=indexin(df.parameter,paramvec); ribbon = (df[:,targetstring] .- dflow[:,targetstring], dfup[:,targetstring] .- df[:,targetstring]))
-        scatter!(maximum(df.T)*ones(size(df_inf)[1]), df_inf[:,targetstring], group=df_inf.parameter, color=indexin(df_inf.parameter,paramvec), marker = :hline, label=false, markerstrokewidth = 2)
-        plot!(dflowup_inf.T, dflowup_inf[:,targetstring], group=dflowup_inf.parameter, color=indexin(dflowup_inf.parameter,paramvec), label=false)
+        scatter!(maximum(df.T)*ones(size(df_inf)[1]), df_inf[:,targetstring], group=df_inf.parameter, color=indexin(df_inf.parameter,paramvec), marker = :hline, label=false, markersize = 4)
+        plot!(dflowup_inf.T, dflowup_inf[:,targetstring], group=dflowup_inf.parameter, color=indexin(dflowup_inf.parameter,paramvec), label=false, alpha=.5, linewidth=7)
         xlabel!("T")
         ylims!(0, min(maximum(df[:,targetstring]),.3))
         ylabel!("Absolute error")
