@@ -3,7 +3,8 @@ include("functions_estimation.jl")
 # Values for the quartiles for the enveloppe
 plow = .25
 pup = .75
-# How to ? Replace 
+# How to add ribbons to the plots ? 
+# Replace 
 # plotestimatorserrors(df, df_inf)
 # by
 # plotestimatorserrors(df, df_inf; quantiles=(plow, pup))
