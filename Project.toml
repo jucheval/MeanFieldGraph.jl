@@ -1,7 +1,7 @@
 name = "MeanFieldGraph"
 uuid = "f3c20582-38a4-43ca-95fd-b3c95fb7ac78"
 authors = ["Julien Chevallier"]
-version = "0.1.0"
+version = "0.2.0"
 
 [deps]
 Clustering = "aaaa29a8-35af-508c-8bc3-b662a17a0fe5"
