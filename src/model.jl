@@ -17,11 +17,22 @@ struct MarkovChainModel
     μ::Float64
     λ::Float64
     p::Float64
+    function MarkovChainModel(μ::Float64, λ::Float64, p::Float64)
+        if (λ < 0) || (λ > 1)
+            throw(ArgumentError("λ is $λ but must be in the range [0, 1]"))
+        end
+        if (μ < 0) || (μ > λ)
+            throw(ArgumentError("μ is $μ but must be in the range [0, $λ]"))
+        end
+        if (p < 0) || (p > 1)
+            throw(ArgumentError("p is $p but must be in the range [0, 1]"))
+        end
+        return new(μ, λ, p)
+    end
 end
 
-## Add constraints for the parameters
-
 # constructors
+MarkovChainModel(μ::Real, λ::Real, p::Real) = MarkovChainModel(Float64.((μ, λ, p))...)
 
 # methods
 
@@ -76,7 +87,7 @@ A *binary discrete time data* of length `T` with `N` dimensions.
 - `X::Matrix{Bool}`: `X[i, t]` gives the presence or absence of an event at time `t` for component `i`.
 
 ```julia
-legnth(data)                # Get the time length of data
+length(data)                # Get the time length of data
 size(data)                  # Get the dimensions of data, i.e. `(N,T)`
 data[:,range::UnitRange]    # Extract the data in the time interval `range`.
 ```
@@ -102,9 +113,16 @@ end
 struct ErdosRenyiGraph
     N::Int64
     p::Float64
+    function ErdosRenyiGraph(N::Int64, p::Float64)
+        if (p < 0) || (p > 1)
+            throw(ArgumentError("p is $p but must be in the range [0, 1]"))
+        end
+        return new(N, p)
+    end
 end
 
 # constructors
+ErdosRenyiGraph(N::Real, p::Real) = ErdosRenyiGraph(Int(N), Float64(p))
 
 # methods
 
