@@ -25,7 +25,12 @@ end
 # methods
 
 # print
-show(io::IO, ::MIME"text/plain", model::MarkovChainModel) = print(io,"μ = $(model.μ), λ = $(model.λ). The θ matrix is not specified (but p = $(model.p)).")
+function show(io::IO, ::MIME"text/plain", model::MarkovChainModel)
+    return print(
+        io,
+        "μ = $(model.μ), λ = $(model.λ). The θ matrix is not specified (but p = $(model.p)).",
+    )
+end
 
 """
     MarkovChainConnectivity(model,θ)
@@ -54,7 +59,12 @@ end
 size(modelconnec::MarkovChainConnectivity) = size(modelconnec.θ)[1]
 
 # print
-show(io::IO, ::MIME"text/plain", modelconnec::MarkovChainConnectivity) = print(io,"μ = $(modelconnec.model.μ), λ = $(modelconnec.model.λ). The θ matrix is specified and has $(size(modelconnec)) nodes.")
+function show(io::IO, ::MIME"text/plain", modelconnec::MarkovChainConnectivity)
+    return print(
+        io,
+        "μ = $(modelconnec.model.μ), λ = $(modelconnec.model.λ). The θ matrix is specified and has $(size(modelconnec)) nodes.",
+    )
+end
 
 """
     DiscreteTimeData(X)
@@ -79,11 +89,14 @@ end
 # methods
 length(data::DiscreteTimeData) = size(data.X)[2]
 size(data::DiscreteTimeData) = size(data.X)
-getindex(data::DiscreteTimeData, range::UnitRange) = DiscreteTimeData(data.X[:,range])
+getindex(data::DiscreteTimeData, range::UnitRange) = DiscreteTimeData(data.X[:, range])
 
 # print
-show(io::IO, ::MIME"text/plain", data::DiscreteTimeData) = print(io,"DiscreteTimeData with $(size(data)[1]) nodes and $(size(data)[2]) time steps.")
-
+function show(io::IO, ::MIME"text/plain", data::DiscreteTimeData)
+    return print(
+        io, "DiscreteTimeData with $(size(data)[1]) nodes and $(size(data)[2]) time steps."
+    )
+end
 
 struct ErdosRenyiGraph
     N::Int64
@@ -95,9 +108,12 @@ end
 # methods
 
 # print
-show(io::IO, ::MIME"text/plain", model::ErdosRenyiGraph) = print(io,"Erdos Renyi graph with $(model.N) nodes and connexion parameter p = $(model.p).")
-
-
+function show(io::IO, ::MIME"text/plain", model::ErdosRenyiGraph)
+    return print(
+        io,
+        "Erdos Renyi graph with $(model.N) nodes and connexion parameter p = $(model.p).",
+    )
+end
 
 ## Auxiliary functions
 
@@ -124,11 +140,11 @@ w &= m(1-m)\\frac{1+4(1-\\lambda)^2p^2r_+r_-}{(1-p(1-\\lambda)(r_+-r_-))^2}.
 """
 function mvw(μ, λ, p, r₊)
     r₋ = 1 - r₊
-    D = 1 - (1-λ)*p*(r₊ - r₋)
-    m = (μ + (1-λ)*p*r₋) / D
-    v = (1-λ)^2*p*(1-p)*( (m - r₋)^2 + r₊*r₋ )
-    w = m*(1-m)*( 1 + 4*(1-λ)^2*p^2*r₊*r₋ ) / D^2
-    return m,v,w
+    D = 1 - (1 - λ) * p * (r₊ - r₋)
+    m = (μ + (1 - λ) * p * r₋) / D
+    v = (1 - λ)^2 * p * (1 - p) * ((m - r₋)^2 + r₊ * r₋)
+    w = m * (1 - m) * (1 + 4 * (1 - λ)^2 * p^2 * r₊ * r₋) / D^2
+    return m, v, w
 end
 
 function mvw(model::MarkovChainModel, r₊)
@@ -157,24 +173,26 @@ function mvw_inf(modelconnec::MarkovChainConnectivity, excitatory::Vector{Bool})
     model = modelconnec.model
     θ = modelconnec.θ
     N = length(excitatory)
-    r₊ = sum(excitatory.==true)/N
+    r₊ = sum(excitatory .== true) / N
     μ = model.μ
     λ = model.λ
 
-    A = 1/N * (θ .* transpose(-1 .+ 2*excitatory))
-    Q = inv(I - (1-λ)*A)
-    L⁻ = sum(A[:,excitatory .== false], dims=2)
-    mN = μ*Q*ones(N) - (1-λ)*Q*L⁻
-    c = sum(Q, dims=1)
+    A = 1 / N * (θ .* transpose(-1 .+ 2 * excitatory))
+    Q = inv(I - (1 - λ) * A)
+    L⁻ = sum(A[:, excitatory .== false]; dims=2)
+    mN = μ * Q * ones(N) - (1 - λ) * Q * L⁻
+    c = sum(Q; dims=1)
 
     m_inf = mean(mN)
-    v_inf = sum((mN .- m_inf).^2)
-    w_inf = mean(c.^2 .* (mN - mN.^2))
+    v_inf = sum((mN .- m_inf) .^ 2)
+    w_inf = mean(c .^ 2 .* (mN - mN .^ 2))
     return m_inf, v_inf, w_inf
 end
-mvw_inf(modelconnec::MarkovChainConnectivity, N::Int, r₊::Float64) = mvw_inf(modelconnec, N2excitatory(N,r₊))
+function mvw_inf(modelconnec::MarkovChainConnectivity, N::Int, r₊::Float64)
+    return mvw_inf(modelconnec, N2excitatory(N, r₊))
+end
 
 function N2excitatory(N, r₊)
-    N₊ = floor(Int,N*r₊)
+    N₊ = floor(Int, N * r₊)
     return [ones(Bool, N₊); zeros(Bool, N - N₊)]
 end

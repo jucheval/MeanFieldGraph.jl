@@ -7,7 +7,7 @@ function classification(data::DiscreteTimeData)::Vector{Bool}
     N, T = size(data)
     σ̂ = covariance_vector(data)
     initialisation = [argmin(σ̂), argmax(σ̂)]
-    output = cluster2bool(kmeans(transpose(σ̂), 2, init=initialisation))
+    output = cluster2bool(kmeans(transpose(σ̂), 2; init=initialisation))
     return output
 end
 
@@ -17,13 +17,13 @@ function covariance_vector(data::DiscreteTimeData)::Vector{Float64}
     Z = sum(X; dims=2)
     ΣX = sum(X; dims=1)
 
-    X = X[:,1:end-1]
+    X = X[:, 1:(end - 1)]
     ΣX = ΣX[2:end]
     s = X * ΣX
-    output = s/(T-1) - sum(Z)*Z/T^2
+    output = s / (T - 1) - sum(Z) * Z / T^2
     # It is not written exactly like the definition in the paper but it is an equivalent formula.
-    
-    return output[:,1]
+
+    return output[:, 1]
 end
 
 # Auxiliary functions

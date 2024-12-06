@@ -12,8 +12,8 @@ N = errors_and_std.parameter
 proba = errors_and_std.proba_exact_recovery
 
 begin # Plot
-    Plots.heatmap(unique(T), unique(N), transpose(reshape(proba, (20,21))))
-    plot!(0:100:T[end], sqrt.(0:100:T[end]), color = :green1, label=L"T = N^2")
+    Plots.heatmap(unique(T), unique(N), transpose(reshape(proba, (20, 21))))
+    plot!(0:100:T[end], sqrt.(0:100:T[end]); color=:green1, label=L"T = N^2")
     xlims!(T[1], T[end])
     ylims!(N[1], N[end])
     xlabel!(L"T")

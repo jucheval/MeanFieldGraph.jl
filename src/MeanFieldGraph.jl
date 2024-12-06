@@ -9,7 +9,6 @@ export estimators, fit
 export classification
 export plot
 
-
 include("model.jl")
 include("simulate.jl")
 include("estimation.jl")
