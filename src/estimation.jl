@@ -1,5 +1,3 @@
-import Distributions.fit
-
 ## Main functions
 """
     estimators(data::DiscreteTimeData, Δ::Int=floor(Int,log(length(data))))
@@ -77,7 +75,7 @@ Fit a `MarkovChainModel` to a data set `data` with asymptotic excitatory proport
 # Keyword argument
 - `Δ`: tuning parameter of the method. Its default value is the floor of ``\\log(T)`` where ``T`` is the time length of `data`.
 """
-function fit(
+function Distributions.fit(
     ::Type{MarkovChainModel},
     data::DiscreteTimeData,
     r₊::Float64;
@@ -90,7 +88,7 @@ function fit(
 end
 
 ## Auxiliary functions
-function ϕ(m, v, w_or_d, r₊)::Tuple{Float64,Float64}
+function ϕ(m::Float64, v::Float64, w_or_d::Float64, r₊::Float64)::Tuple{Float64,Float64}
     r₋ = 1 - r₊
     if abs(r₊ - r₋) < 1e-3
         ϕ₁ = w_or_d / (m * (1 - m)) - 1
@@ -105,7 +103,7 @@ function ϕ(m, v, w_or_d, r₊)::Tuple{Float64,Float64}
     return ϕ₁, ϕ₂
 end
 
-function Φ_aux(m, v, w_or_d, r₊)::Tuple{Float64,Float64,Float64}
+function Φ_aux(m::Float64, v::Float64, w_or_d::Float64, r₊::Float64)::Tuple{Float64,Float64,Float64}
     r₋ = 1 - r₊
     ϕ₁, ϕ₂ = ϕ(m, v, w_or_d, r₊)
     Φ₁ = m * (1 - (r₊ - r₋) * sqrt(ϕ₁)) - r₋ * sqrt(ϕ₁)
@@ -120,7 +118,7 @@ function Φ_aux(m, v, w_or_d, r₊)::Tuple{Float64,Float64,Float64}
     return projection2admissibleset(Φ₁, Φ₂, Φ₃)
 end
 
-function Φ(m, v, w, r₊)::Tuple{Float64,Float64,Float64}
+function Φ(m::Float64, v::Float64, w::Float64, r₊::Float64)::Tuple{Float64,Float64,Float64}
     r₋ = 1 - r₊
     if abs(r₊ - r₋) < 1e-3
         return Φ_aux(m, v, w, r₊)
@@ -177,14 +175,14 @@ function Φ(m, v, w, r₊)::Tuple{Float64,Float64,Float64}
     return (whichestim == 1) .* (μ₊, λ₊, p₊) .+ (whichestim == 2) .* (μ₋, λ₋, p₋)
 end
 
-function distance2admissibleset(μ, λ, p)::Float64
+function distance2admissibleset(μ::Float64, λ::Float64, p::Float64)::Float64
     d1 = -λ * (λ < 0) + (λ - 1) * (λ > 1)
     d2 = -p * (p < 0) + (p - 1) * (p > 1)
     d3 = -μ * (μ < 0) + (μ - λ) * (μ > λ)
     return d1 + d2 + d3
 end
 
-function projection2admissibleset(μ, λ, p)::Tuple{Float64,Float64,Float64}
+function projection2admissibleset(μ::Float64, λ::Float64, p::Float64)::Tuple{Float64,Float64,Float64}
     λ = min(1, max(0, λ))
     p = min(1, max(0, p))
     μ = min(λ, max(0, μ))

@@ -1,4 +1,3 @@
-import Base.show, Base.length, Base.getindex, Base.size
 ## Structures
 
 """
@@ -20,12 +19,14 @@ struct MarkovChainModel
     p::Float64
 end
 
+## Add constraints for the parameters
+
 # constructors
 
 # methods
 
 # print
-function show(io::IO, ::MIME"text/plain", model::MarkovChainModel)
+function Base.show(io::IO, ::MIME"text/plain", model::MarkovChainModel)
     return print(
         io,
         "μ = $(model.μ), λ = $(model.λ). The θ matrix is not specified (but p = $(model.p)).",
@@ -56,10 +57,10 @@ end
 # constructors
 
 # methods
-size(modelconnec::MarkovChainConnectivity) = size(modelconnec.θ)[1]
+Base.size(modelconnec::MarkovChainConnectivity) = size(modelconnec.θ)[1]
 
 # print
-function show(io::IO, ::MIME"text/plain", modelconnec::MarkovChainConnectivity)
+function Base.show(io::IO, ::MIME"text/plain", modelconnec::MarkovChainConnectivity)
     return print(
         io,
         "μ = $(modelconnec.model.μ), λ = $(modelconnec.model.λ). The θ matrix is specified and has $(size(modelconnec)) nodes.",
@@ -87,12 +88,12 @@ end
 # constructors
 
 # methods
-length(data::DiscreteTimeData) = size(data.X)[2]
-size(data::DiscreteTimeData) = size(data.X)
-getindex(data::DiscreteTimeData, range::UnitRange) = DiscreteTimeData(data.X[:, range])
+Base.length(data::DiscreteTimeData) = size(data.X)[2]
+Base.size(data::DiscreteTimeData) = size(data.X)
+Base.getindex(data::DiscreteTimeData, range::UnitRange) = DiscreteTimeData(data.X[:, range])
 
 # print
-function show(io::IO, ::MIME"text/plain", data::DiscreteTimeData)
+function Base.show(io::IO, ::MIME"text/plain", data::DiscreteTimeData)
     return print(
         io, "DiscreteTimeData with $(size(data)[1]) nodes and $(size(data)[2]) time steps."
     )
@@ -108,7 +109,7 @@ end
 # methods
 
 # print
-function show(io::IO, ::MIME"text/plain", model::ErdosRenyiGraph)
+function Base.show(io::IO, ::MIME"text/plain", model::ErdosRenyiGraph)
     return print(
         io,
         "Erdos Renyi graph with $(model.N) nodes and connexion parameter p = $(model.p).",

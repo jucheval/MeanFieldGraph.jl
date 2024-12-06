@@ -1,6 +1,9 @@
 module MeanFieldGraph
 
-using Distributions, LinearAlgebra, Plots, Clustering
+using Clustering: Clustering, KmeansResult, assignments, counts, kmeans
+using Distributions: Distributions, Bernoulli, DiscreteUniform, fit, mean
+using LinearAlgebra: LinearAlgebra, I, transpose
+using Plots: Plots, heatmap, palette, plot
 
 export MarkovChainModel, DiscreteTimeData, MarkovChainConnectivity
 export mvw, mvw_inf
