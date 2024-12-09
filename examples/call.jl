@@ -1,9 +1,7 @@
 using MeanFieldGraph
 using Distributions
-using DataFrames
-using ProgressLogging
 using StatsPlots
-using Profile
+
 
 N = 200
 r₊ = 0.6
