@@ -211,7 +211,7 @@ function mvw_inf(modelconnec::MarkovChainConnectivity, N::Int, r₊::Float64)
     return mvw_inf(modelconnec, N2excitatory(N, r₊))
 end
 
-function N2excitatory(N, r₊)
+function N2excitatory(N::Int, r₊::Float64)
     N₊ = floor(Int, N * r₊)
     return [ones(Bool, N₊); zeros(Bool, N - N₊)]
 end
