@@ -18,18 +18,19 @@ function estimators(
     X = data.X
 
     Z_T = sum(X; dims=2)
+    ∑X = sum(X; dims=1)
     Z̄_T = mean(Z_T)
     m̂ = Z̄_T / T
     v̂ = (N) * (T + 1) * T^(-3) * (mean(Z_T .^ 2) - T / (T + 1) * (Z̄_T + Z̄_T^2))
-    WΔ = 0
+    WΔ = 0.
     for iter in 1:div(T, Δ)
-        WΔ += (N) / T * (sum(X[:, (1 + (iter - 1) * Δ):(iter * Δ)]) / (N) - Δ * m̂)^2
+        WΔ += (N) / T * (sum(∑X[(1 + (iter - 1) * Δ):(iter * Δ)]) / (N) - Δ * m̂)^2
     end
-    W2Δ = 0
+    W2Δ = 0.
     for iter in 1:div(T, 2 * Δ)
         W2Δ +=
             (N) / T *
-            (sum(X[:, (1 + (iter - 1) * 2 * Δ):(iter * 2 * Δ)]) / (N) - 2 * Δ * m̂)^2
+            (sum(∑X[(1 + (iter - 1) * 2 * Δ):(iter * 2 * Δ)]) / (N) - 2 * Δ * m̂)^2
     end
     ŵ = 2 * W2Δ - WΔ
 
@@ -43,6 +44,7 @@ function estimators(
     X = data.X
 
     Z_T = sum(X; dims=2)
+    ∑X = sum(X; dims=1)
     Z̄_T = mean(Z_T)
     m̂ = Z̄_T / T
     v̂ = (N) * (T + 1) * T^(-3) * (mean(Z_T .^ 2) - T / (T + 1) * (Z̄_T + Z̄_T^2))
@@ -51,15 +53,15 @@ function estimators(
         if Δ == 0
             Δ = floor(Int, log(length(data)))
         end
-        WΔ = 0
+        WΔ = 0.
         for iter in 1:div(T, Δ)
-            WΔ += (N) / T * (sum(X[:, (1 + (iter - 1) * Δ):(iter * Δ)]) / (N) - Δ * m̂)^2
+            WΔ += (N) / T * (sum(∑X[(1 + (iter - 1) * Δ):(iter * Δ)]) / (N) - Δ * m̂)^2
         end
-        W2Δ = 0
+        W2Δ = 0.
         for iter in 1:div(T, 2 * Δ)
             W2Δ +=
                 (N) / T *
-                (sum(X[:, (1 + (iter - 1) * 2 * Δ):(iter * 2 * Δ)]) / (N) - 2 * Δ * m̂)^2
+                (sum(∑X[(1 + (iter - 1) * 2 * Δ):(iter * 2 * Δ)]) / (N) - 2 * Δ * m̂)^2
         end
         push!(ŵ, 2 * W2Δ - WΔ)
     end
