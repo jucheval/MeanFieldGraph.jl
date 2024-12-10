@@ -63,7 +63,7 @@ Since the connectiviy matrix is specified, the parameter `model.p` is not used.
 struct MarkovChainConnectivity
     model::MarkovChainModel
     θ::Matrix{Bool}
-    function MarkovChainConnectivity(model::MarkovChainModel, θ::Matrix{Bool})
+    function MarkovChainConnectivity(model::MarkovChainModel, θ)
         if (size(θ)[1] != size(θ)[2])
             throw(DimensionMismatch("θ must be a square matrix"))
         end
