@@ -63,6 +63,12 @@ Since the connectiviy matrix is specified, the parameter `model.p` is not used.
 struct MarkovChainConnectivity
     model::MarkovChainModel
     θ::Matrix{Bool}
+    function MarkovChainConnectivity(model::MarkovChainModel, θ::Matrix{Bool})
+        if (size(θ)[1] != size(θ)[2])
+            throw(DimensionMismatch("θ must be a square matrix"))
+        end
+        return new(model, θ)
+    end
 end
 
 # constructors
@@ -158,6 +164,9 @@ w &= m(1-m)\\frac{1+4(1-\\lambda)^2p^2r_+r_-}{(1-p(1-\\lambda)(r_+-r_-))^2}.
 - `r₊`: ratio of excitatory components
 """
 function mvw(μ, λ, p, r₊)
+    if !(0 <= r₊ <= 1)
+        throw(ArgumentError("r₊ is $r₊ but must be in the range [0, 1]"))
+    end
     r₋ = 1 - r₊
     D = 1 - (1 - λ) * p * (r₊ - r₋)
     m = (μ + (1 - λ) * p * r₋) / D
@@ -189,9 +198,12 @@ w_\\infty = \\frac{1}{N} \\sum_{i=1}^N (c^N_i)^2 m^N_i (1 - m^N_i) ,
 - `excitatory::Vector{Bool}`: `true` coordinates correspond to excitatory components and `false` coordinates correspond to inhibitory components.
 """
 function mvw_inf(modelconnec::MarkovChainConnectivity, excitatory::Vector{Bool})
+    N = length(excitatory)
+    if N != size(modelconnec)
+        throw(DimensionMismatch("size(modelconnec) must be equal to length(excitatory)"))
+    end
     model = modelconnec.model
     θ = modelconnec.θ
-    N = length(excitatory)
     r₊ = sum(excitatory .== true) / N
     μ = model.μ
     λ = model.λ
@@ -212,6 +224,13 @@ function mvw_inf(modelconnec::MarkovChainConnectivity, N::Int, r₊::Float64)
 end
 
 function N2excitatory(N::Int, r₊::Float64)
+    if !(0 <= r₊ <= 1)
+        throw(ArgumentError("r₊ is $r₊ but must be in the range [0, 1]"))
+    end
+    if (N < 1)
+        throw(ArgumentError("N is $N but must be positive"))
+    end
+
     N₊ = floor(Int, N * r₊)
     return [ones(Bool, N₊); zeros(Bool, N - N₊)]
 end

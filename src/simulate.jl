@@ -41,6 +41,13 @@ function rand(
     modelconnec::MarkovChainConnectivity, excitatory::Vector{Bool}, T::Int
 )::DiscreteTimeData
     N = length(excitatory)
+    if N != size(modelconnec)
+        throw(DimensionMismatch("size(modelconnec) must be equal to length(excitatory)"))
+    end
+    if (T < 1)
+        throw(ArgumentError("T is $T but must be positive"))
+    end
+
     output = Matrix{Bool}(undef, N, T)
     current_value = stationary_initial_condition(modelconnec, excitatory)
     output[:, 1] = current_value

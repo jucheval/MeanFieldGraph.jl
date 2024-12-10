@@ -10,6 +10,12 @@ If the value `Δ = 0` is chosen, then it is replaced by its default value `floor
 function estimators(
     data::DiscreteTimeData, Δ::Int=floor(Int, log(length(data)))
 )::Tuple{Float64,Float64,Float64}
+    if !(0 <= r₊ <= 1)
+        throw(ArgumentError("r₊ is $r₊ but must be in the range [0, 1]"))
+    end
+    if (Δ < 0)
+        throw(ArgumentError("Δ is $Δ but must be non negative"))
+    end
     if Δ == 0
         Δ = floor(Int, log(length(data)))
     end
@@ -40,6 +46,13 @@ end
 function estimators(
     data::DiscreteTimeData, Δvec::Vector{Int}
 )::Tuple{Float64,Float64,Vector{Float64}}
+    if !(0 <= r₊ <= 1)
+        throw(ArgumentError("r₊ is $r₊ but must be in the range [0, 1]"))
+    end
+    if (Δ < 0)
+        throw(ArgumentError("Δ is $Δ but must be non negative"))
+    end
+
     N, T = size(data)
     X = data.X
 
@@ -83,8 +96,14 @@ function Distributions.fit(
     r₊::Float64;
     Δ::Int=floor(Int, log(length(data))),
 )::MarkovChainModel
-    m̂, v̂, ŵ = estimators(data, Δ)
+    if !(0 <= r₊ <= 1)
+        throw(ArgumentError("r₊ is $r₊ but must be in the range [0, 1]"))
+    end
+    if (Δ < 0)
+        throw(ArgumentError("Δ is $Δ but must be non negative"))
+    end
 
+    m̂, v̂, ŵ = estimators(data, Δ)
     μ, λ, p = Φ(m̂, v̂, ŵ, r₊)
     return MarkovChainModel(μ, λ, p)
 end
