@@ -4,11 +4,25 @@
 Estimates the two underlying communities (one excitatory and one inhibitory) from the data set `data`. It returns a `Vector{Bool}` where the `true` coordinates correspond to excitatory components and `false` coordinates correspond to inhibitory components.
 
 # Keyword arguments
+    - `method::Symbol`: the method applied to estimate the covariance vector σ. Valid choices are: `:aggregated` (the default) and `:spectral`.
     - `clustering::Symbol`: the clustering method applied to the estimated covariance vector. Valid choices are: `:kmeans` (the default) and `:hclust`.
 """
-function classification(data::DiscreteTimeData; clustering::Symbol=:kmeans)::Vector{Bool}
-    σ̂ = covariance_vector(data)
+function classification(
+    data::DiscreteTimeData; method::Symbol=:aggregated, clustering::Symbol=:kmeans
+)::Vector{Bool}
 
+    # Estimation of the covariance vector σ
+    if method == :aggregated
+        σ̂ = covariance_vector(data)
+    elseif method == :spectral
+        Σ̂ = covariance_matrix(data)
+        _, vecs = eigsolve(transpose(Σ̂) * Σ̂)
+        σ̂ = vecs[1]
+    else
+        throw(ArgumentError("Unsupported method $method"))
+    end
+
+    # Clustering based on the estimated σ̂
     if clustering == :kmeans
         initialisation = [argmin(σ̂), argmax(σ̂)]
         output = cluster2bool(kmeans(transpose(σ̂), 2; init=initialisation))
@@ -35,6 +49,20 @@ function covariance_vector(data::DiscreteTimeData)::Vector{Float64}
     # It is not written exactly like the definition in the paper but it is an equivalent formula.
 
     return output[:, 1]
+end
+
+function covariance_matrix(data::DiscreteTimeData)::Matrix{Float64}
+    X = data.X
+    N, T = size(data)
+    Z = sum(X; dims=2)
+
+    s = zeros((N, N))
+    for t in 1:(T - 1)
+        s += @views(X[:, t + 1] * transpose(X[:, t]))
+    end
+    output = s / (T - 1) - Z * transpose(Z) / T^2
+
+    return output
 end
 
 # Auxiliary functions
