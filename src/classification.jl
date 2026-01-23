@@ -25,7 +25,7 @@ end
 
 # Auxiliary functions
 
-function cluster2bool(R::KmeansResult)::Vector{Bool}
+function cluster2bool(R::ClusteringResult)::Vector{Bool}
     output = Vector{Bool}(undef, sum(counts(R)))
     check = R.centers[1] < R.centers[2]
 
