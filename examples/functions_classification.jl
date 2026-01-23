@@ -1,4 +1,6 @@
 using MeanFieldGraph
+using Clustering
+using KrylovKit
 using ProgressLogging
 using DataFrames
 using Random
@@ -9,41 +11,16 @@ using CSV
 using TableMetadataTools
 using LaTeXStrings
 
-## Simulation and computation of the estimators
-"""
-    classification_errors(model::MarkovChainModel, N::Int, r₊::Float64, Nsimu::Int, tvec::Vector{Int}, Δvec::Vector{Int})::Tuple{DataFrame, DataFrame}
+# FIXME : since σ̂sp is estimated up to +/- 1 factor, we use σ̂ag to decide which cluster is excitatory and which is inhibitory
 
-Simulate 'Nsimu' times the prescribed model and compute each time the proportion of classification errors at the observations times ``T`` given by `tvec`.
-
-# Output
-One `DataFrame`: each simulation correspond to `length(tvec)` rows. The three columns give the index of the simulation, the observation time and the proportion of classification errors.
-"""
-function classification_errors(
-    model::MarkovChainModel, N::Int, r₊::Float64, Nsimu::Int, tvec::Vector{Int}
-)::DataFrame
-    T = maximum(tvec)
-    df = DataFrame(; idsimu=Int[], T=Int[], prop_errors=Float64[])
-
-    excitatory = MeanFieldGraph.N2excitatory(N, r₊)
-
-    @progress "classification_errors" for idsimu in 1:Nsimu
-        data = rand(model, excitatory, T)
-        for t in tvec
-            tmpdata = data[1:t]
-            partition = classification(tmpdata)
-            push!(df, (idsimu, t, mean(abs.(partition - excitatory))))
-        end
-    end
-    return df
-end
-
+#region Simulation and creation of the dataset
 """
     classiferrortable(Paramsymbol::Symbol, Paramvec, default_values::@NamedTuple{N::Int64, r₊::Float64, β::Float64, λ::Float64, p::Float64, Nsimu::Int64}, tvec)::DataFrame
 
-For each value of the parameter `Paramsymbol` prescribed via `Paramvec`, make `default_values.Nsimu` simulations of the mmodel, compute the classification at the observations times ``T`` given by `tvec` and the misclassification proportion. The fixed parameters are specified by the named tuple `default_values`.
+For each value of the parameter `Paramsymbol` prescribed via `Paramvec`, make `default_values.Nsimu` simulations of the model, compute the misclassification proportion at the observations times ``T`` given by `tvec`. The fixed parameters are specified by the named tuple `default_values`.
 
 # Output
-One `DataFrame`: each parameter value correspond to `default_values.Nsimu * length(tvec)` rows. The last column gives the proportion of misclassification.
+One `DataFrame`: each parameter value correspond to `default_values.Nsimu * length(tvec)` rows. The last 10 columns give the proportion of misclassification for each coupling of method (aggregated or spectral) and clustering (kmeans or hierarchical with complete, single, average, ward linkage).
 """
 function classiferrortable(
     Paramsymbol::Symbol,
@@ -51,11 +28,13 @@ function classiferrortable(
     default_values::@NamedTuple{
         N::Int64, r₊::Float64, β::Float64, λ::Float64, p::Float64, Nsimu::Int64
     },
-    tvec,
+    tvec;
+    multi_thread::Bool=false,
 )::DataFrame
     ## Set default
     N, r₊, β, λ, p, Nsimu = default_values
 
+    # FIXME A = Array{Float64}(undef, 10, length(tvec), Nsimu, length(Paramvec))
     A = Array{Float64}(undef, length(tvec), Nsimu, length(Paramvec))
 
     for idparam in eachindex(Paramvec)
@@ -73,25 +52,64 @@ function classiferrortable(
         end
         model = MarkovChainModel(β * λ, λ, p)
         excitatory = MeanFieldGraph.N2excitatory(N, r₊)
-        @progress "classiferrortables, i=" *
-            string(idparam) *
-            " on " *
-            string(length(Paramvec)) for idsimu in 1:Nsimu
-            data = rand(model, excitatory, T)
-            for idt in eachindex(tvec)
-                tmpdata = data[1:tvec[idt]]
-                A[idt, idsimu, idparam] = mean(abs.(classification(tmpdata) - excitatory))
+        if multi_thread
+            println(
+                "classiferrortables, i=" *
+                string(idparam) *
+                " on " *
+                string(length(Paramvec)),
+            )
+            Threads.@threads for idsimu in 1:Nsimu
+                data = rand(model, excitatory, T)
+                for idt in eachindex(tvec)
+                    tmpdata = data[1:tvec[idt]]
+                    # FIXME A[:, idt, idsimu, idparam] = misclassificationrates(tmpdata, excitatory)
+                    σ̂ag = MeanFieldGraph.covariance_vector(tmpdata)
+                    A[idt, idsimu, idparam] = misclassificationrate(
+                        σ̂ag, excitatory, :kmeans
+                    )
+                end
+            end
+        else
+            @progress "classiferrortables, i=" *
+                string(idparam) *
+                " on " *
+                string(length(Paramvec)) for idsimu in 1:Nsimu
+                data = rand(model, excitatory, T)
+                for idt in eachindex(tvec)
+                    tmpdata = data[1:tvec[idt]]
+                    A[:, idt, idsimu, idparam] = misclassificationrates(tmpdata, excitatory)
+                end
             end
         end
     end
 
     Paramsymbol == :N ? Typeparam = Int : Typeparam = Float64
-    df = DataFrame(; parameter=Typeparam[], T=Int[], prop_errors=Float64[])
+    df = DataFrame(;
+        parameter=Typeparam[],
+        T=Int[],
+        miscl_rate_ag_kmeans=Float64[],
+        # miscl_rate_ag_hccomp=Float64[], FIXME
+        # miscl_rate_ag_hcsing=Float64[],
+        # miscl_rate_ag_hcavg=Float64[],
+        # miscl_rate_ag_hcward=Float64[],
+        # miscl_rate_sp_kmeans=Float64[],
+        # miscl_rate_sp_hccomp=Float64[],
+        # miscl_rate_sp_hcsing=Float64[],
+        # miscl_rate_sp_hcavg=Float64[],
+        # miscl_rate_sp_hcward=Float64[],
+    )
+    # _, n1, n2, n3 = size(A) FIXME
     n1, n2, n3 = size(A)
     for idparam in 1:n3
         for idsimu in 1:n2
             for idt in 1:n1
-                push!(df, (Paramvec[idparam], tvec[idt], A[idt, idsimu, idparam]))
+                push!(df, (
+                    Paramvec[idparam],
+                    tvec[idt],
+                    # A[:, idt, idsimu, idparam]...FIXME
+                    A[idt, idsimu, idparam],
+                ))
             end
         end
     end
@@ -99,6 +117,8 @@ function classiferrortable(
     return df
 end
 
+#region Helper functions used in classiferrortable
+## fill the metadata of the DataFrame
 function metadatacomplete!(
     df::DataFrame,
     Paramsymbol::Symbol,
@@ -108,21 +128,105 @@ function metadatacomplete!(
 )
     N, r₊, β, λ, p, Nsimu = default_values
 
-    metadata!(df, "Caption", "Proportion of misclassification")
+    metadata!(df, "Caption", "Misclassification rates")
     Paramsymbol == :N || metadata!(df, "N", N; style=:note)
     Paramsymbol == :r₊ || metadata!(df, "r₊", r₊; style=:note)
     Paramsymbol == :β || metadata!(df, "β", β; style=:note)
     Paramsymbol == :λ || metadata!(df, "λ", λ; style=:note)
     Paramsymbol == :p || metadata!(df, "p", p; style=:note)
     metadata!(df, "Number of simulations", Nsimu; style=:note)
-    colmetadata!(df, :T, "label", "Time horizon used for the estimation"; style=:note)
     metadata!(df, "Varying parameter", String(Paramsymbol); style=:note)
+
+    colmetadata!(df, :T, "label", "Time horizon used for the estimation"; style=:note)
+    methods_str = ["aggregated", "spectral"]
+    methods_symb = [:ag, :sp]
+    clusterings_str = [
+        "kmeans",
+        "hierarchical (complete)",
+        "hierarchical (single)",
+        "hierarchical (average)",
+        "hierarchical (ward)",
+    ]
+    clusterings_symb = [:kmeans, :hccomp, :hcsing, :hcavg, :hcward]
+    # for i in 1:2 FIXME
+    #     for j in 1:5
+    #         colmetadata!(
+    #             df,
+    #             Symbol(:miscl_rate_, methods_symb[i], :_, clusterings_symb[j]),
+    #             "label",
+    #             "Misclassification rate for the " *
+    #             methods_str[i] *
+    #             " method with " *
+    #             clusterings_str[j] *
+    #             " clustering";
+    #             style=:note,
+    #         )
+    #     end
+    # end
+    colmetadata!(
+        df,
+        :miscl_rate_ag_kmeans,
+        "label",
+        "Misclassification rate for the aggregated method with kmeans clustering";
+        style=:note,
+    )
     return colmetadata!(
         df, :parameter, "label", "Value of the varying parameter"; style=:note
     )
 end
 
-## Post simulation operations : computation of the errors
+## Compute misclassification rate for all methods
+function misclassificationrates(
+    data::DiscreteTimeData, excitatory::Vector{Bool}
+)::Vector{Float64}
+    output = Float64[]
+
+    # aggregated classifications
+    σ̂ag = MeanFieldGraph.covariance_vector(data)
+    for c in [:kmeans, :complete, :single, :average, :ward]
+        push!(output, misclassificationrate(σ̂ag, excitatory, c))
+    end
+
+    # spectral classifications
+    Σ̂ = MeanFieldGraph.covariance_matrix(data)
+    _, vecs = eigsolve(transpose(Σ̂) * Σ̂)
+    σ̂sp = vecs[1]
+    # FIXME : how to chose the sign of σ̂sp ?
+    if mapreduce(abs, +, σ̂ag - σ̂sp) > mapreduce(abs, +, σ̂ag + σ̂sp)
+        σ̂sp *= -1
+    end
+    for c in [:kmeans, :complete, :single, :average, :ward]
+        push!(output, misclassificationrate(σ̂sp, excitatory, c))
+    end
+
+    return output
+end
+
+## Compute misclassification rate for each individual methods
+function misclassificationrate(
+    σ::Vector{Float64}, excitatory::Vector{Bool}, clustering::Symbol
+)::Float64
+    if clustering == :kmeans
+        classif = MeanFieldGraph.cluster2bool(
+            kmeans(transpose(σ), 2; init=[argmin(σ), argmax(σ)])
+        )
+    else
+        distances = [abs(σ[i] - σ[j]) for i in eachindex(σ), j in eachindex(σ)]
+        ct = cutree(hclust(distances; linkage=clustering); k=2)
+        id_excitatory = ct[argmax(σ)]
+        classif = ct .== id_excitatory
+    end
+
+    return mean(abs.(classif - excitatory))
+end
+#endregion
+#endregion
+
+# TODO: restart here. Leave the dataframe as it is. Make a function that makes the dataframe tidy afterwards
+
+# TODO : convert into Tidier syntax (maybe simpler to move it to the "call" files)
+#region Post simulation operations
+## Compute the mean misclassification rate and probability of exact recovery
 function proportion2errors(df::DataFrame)
     output = empty(df)
     select!(output, Not(3))
@@ -155,7 +259,44 @@ function proportion2errors(df::DataFrame)
     return output
 end
 
-## Plot functions
+### Compute the mean misclassification rate and probability of exact recovery + bands for a wide data set
+function mmr_per(df_wide)
+    # lengthen data set and select columns
+    df = @chain df_wide begin
+        @rename(n = parameter, t = T)
+        @pivot_longer(-[n, t], values_to = "misclassification_rate")
+        @separate(variable, (a, b, method, clustering), "_")
+        @select(-[a, b])
+    end
+
+    # compute mean and standard error for misclassification rate and exact recovery
+    df_mean = @chain df begin
+        @group_by([n, t, method, clustering])
+        @summarize(
+            mr_mean = mean(misclassification_rate),
+            mr_std = std(misclassification_rate),
+            er_mean = mean(misclassification_rate == 0),
+            er_std = std(misclassification_rate == 0)
+        )
+        @ungroup
+    end
+
+    # compute lower and upper bounds for bands
+    factor = quantile(Normal(), 0.975) / sqrt(metadata(df_mean, "Number of simulations"))
+    df_mean_bands = transform(
+        df_mean,
+        [:mr_mean, :mr_std] => ((x, y) -> x - y) => :mr_lower,
+        [:mr_mean, :mr_std] => ((x, y) -> x + y) => :mr_upper,
+        [:er_mean, :er_std] => ((x, y) -> x - factor * y) => :er_lower,
+        [:er_mean, :er_std] => ((x, y) -> x + factor * y) => :er_upper,
+    )
+
+    return df_mean_bands
+end
+#endregion
+
+# TODO: Convert to AlgebraofGraphics plots ?? 
+#region Plot functions
 function plotclassification(df::DataFrame)
     paramvec = unique(df.parameter)
     paramstring = metadata(df, "Varying parameter")
@@ -183,8 +324,9 @@ function plotclassification(df::DataFrame)
         ),
     )
 end
+#endregion
 
-## Save and Load functions
+#region Save and Load functions
 function simulationandsave(
     Paramsymbol::Symbol,
     Paramvec,
@@ -218,3 +360,4 @@ function estimatorsload(filename::String)
 
     return df, df_inf
 end
+#endregion

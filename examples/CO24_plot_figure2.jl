@@ -1,22 +1,17 @@
 include("functions_classification.jl")
 
-begin # Load
-    df = CSV.read("data/CO24/data_for_color_plot.csv", DataFrame)
-    open("data/CO24/data_for_color_plot.toml") do io
-        toml2meta!(df, io)
-    end
-end;
-errors_and_std = proportion2errors(df)
-T = errors_and_std.T
-N = errors_and_std.parameter
-proba = errors_and_std.proba_exact_recovery
+## Left plot
+df_wide = estimatorsload("data/CO24/data_for_color_plot")
+df_mean_bands = mmr_per(df_wide)
 
-begin # Plot
-    Plots.heatmap(unique(T), unique(N), transpose(reshape(proba, (20, 21))))
-    plot!(0:100:T[end], sqrt.(0:100:T[end]); color=:green1, label=L"T = N^2")
-    xlims!(T[1], T[end])
-    ylims!(N[1], N[end])
-    xlabel!(L"T")
-    ylabel!(L"N")
-end
-savefig("plots/CO24/colorplot.pdf")
+fig = plot_heatmap(df_mean_bands, :er, :ag, :kmeans)
+
+save("plots/CO24/heatmap_er.pdf", fig)
+
+## Right plot
+df_wide = estimatorsload("data/CO24/data_for_color_plot_mr")
+df_mean_bands = mmr_per(df_wide)
+
+fig = plot_heatmap(df_mean_bands, :mr, :ag, :kmeans)
+
+save("plots/CO24/heatmap_mr.png", fig)
