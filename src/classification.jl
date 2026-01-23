@@ -2,11 +2,25 @@
     classification(data::DiscreteTimeData)
 
 Estimates the two underlying communities (one excitatory and one inhibitory) from the data set `data`. It returns a `Vector{Bool}` where the `true` coordinates correspond to excitatory components and `false` coordinates correspond to inhibitory components.
+
+# Keyword arguments
+    - `clustering::Symbol`: the clustering method applied to the estimated covariance vector. Valid choices are: `:kmeans` (the default) and `:hclust`.
 """
-function classification(data::DiscreteTimeData)::Vector{Bool}
+function classification(data::DiscreteTimeData; clustering::Symbol=:kmeans)::Vector{Bool}
     σ̂ = covariance_vector(data)
-    initialisation = [argmin(σ̂), argmax(σ̂)]
-    output = cluster2bool(kmeans(transpose(σ̂), 2; init=initialisation))
+
+    if clustering == :kmeans
+        initialisation = [argmin(σ̂), argmax(σ̂)]
+        output = cluster2bool(kmeans(transpose(σ̂), 2; init=initialisation))
+    elseif clustering == :hclust
+        distances = [abs(σ̂[i] - σ̂[j]) for i in eachindex(σ̂), j in eachindex(σ̂)]
+        ct = cutree(hclust(distances); k=2)
+        id_excitatory = ct[argmax(σ̂)]
+        output = ct .== id_excitatory
+    else
+        throw(ArgumentError("Unsupported clustering method $clustering"))
+    end
+
     return output
 end
 

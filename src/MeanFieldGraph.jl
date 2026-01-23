@@ -1,6 +1,6 @@
 module MeanFieldGraph
 
-using Clustering: Clustering, ClusteringResult, assignments, counts, kmeans
+using Clustering: Clustering, ClusteringResult, assignments, counts, kmeans, hclust, cutree
 using Distributions: Distributions, Bernoulli, DiscreteUniform, fit, mean
 using LinearAlgebra: LinearAlgebra, I, transpose
 using Plots: Plots, heatmap, palette, plot
