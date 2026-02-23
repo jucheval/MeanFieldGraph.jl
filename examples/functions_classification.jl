@@ -219,56 +219,19 @@ end
 #endregion
 #endregion
 
-# TODO: restart here. Leave the dataframe as it is. Make a function that makes the dataframe tidy afterwards
-
-# TODO : convert into Tidier syntax (maybe simpler to move it to the "call" files)
 #region Post simulation operations
-## Compute the mean misclassification rate and probability of exact recovery
-function proportion2errors(df::DataFrame)
-    output = empty(df)
-    select!(output, Not(3))
-    output[!, :mean_prop] .= 0.0
-    output[!, :mean_prop_std] .= 0.0
-    output[!, :proba_exact_recovery] .= 0.0
-    output[!, :proba_exact_recovery_std] .= 0.0
-
-    for param in unique(df.parameter)
-        for t in unique(df.T)
-            selection = (df.parameter .== param) .* (df.T .== t)
-            push!(
-                output,
-                (
-                    param,
-                    t,
-                    mean(df.prop_errors[selection]),
-                    std(df.prop_errors[selection]),
-                    mean(df.prop_errors[selection] .== 0),
-                    std(df.prop_errors[selection] .== 0),
-                ),
-            )
-        end
-    end
-    metadata!(
-        output,
-        "Caption",
-        "Mean proportion of misclassification and probability of exact recovery",
-    )
-    return output
-end
-
 ### Compute the mean misclassification rate and probability of exact recovery + bands for a wide data set
 function mmr_per(df_wide)
     # lengthen data set and select columns
     df = @chain df_wide begin
-        @rename(n = parameter, t = T)
-        @pivot_longer(-[n, t], values_to = "misclassification_rate")
+        @pivot_longer(-[parameter, T], values_to = "misclassification_rate")
         @separate(variable, (a, b, method, clustering), "_")
         @select(-[a, b])
     end
 
     # compute mean and standard error for misclassification rate and exact recovery
     df_mean = @chain df begin
-        @group_by([n, t, method, clustering])
+        @group_by([parameter, T, method, clustering])
         @summarize(
             mr_mean = mean(misclassification_rate),
             mr_std = std(misclassification_rate),
@@ -292,34 +255,126 @@ function mmr_per(df_wide)
 end
 #endregion
 
-# TODO: Convert to AlgebraofGraphics plots ?? 
 #region Plot functions
 function plotclassification(df::DataFrame)
-    paramvec = unique(df.parameter)
+    # paramvec = unique(df.parameter)
     paramstring = metadata(df, "Varying parameter")
-    Nsimu = metadata(df, "Number of simulations")
-    col = indexin(df.parameter, paramvec)
-    q = quantile(Normal(), 0.975)
+    # Nsimu = metadata(df, "Number of simulations")
+    # col = indexin(df.parameter, paramvec)
+    # q = quantile(Normal(), 0.975)
+    df = @mutate(df, parameter = string(parameter))
 
     paramstring == "r₊" && (paramstring = "r_+") # modified before passing to latexstring
+    colmetadata!(df, :parameter, "label", ""; style=:note)
+    colmetadata!(df, :T, "label", L"T"; style=:note)
 
-    plot(df.T, df.mean_prop; group=df.parameter, color=col, ribbon=df.mean_prop_std)
-    xlabel!(L"T")
-    ylims!(0, 1)
-    title!(
-        "Misclassification and exact recovery as " * latexstring(paramstring) * " varies"
-    )
-    return display(
-        plot!(
-            df.T,
-            df.proba_exact_recovery;
-            group=df.parameter,
-            color=col,
-            label=false,
-            linestyle=:dash,
-            ribbon=q * df.proba_exact_recovery_std / sqrt(Nsimu),
+    lines_mr = visual(Lines) * mapping(:T, :mr_mean; color=:parameter)
+    band_mr = visual(Band; alpha=0.3) * mapping(:T, :mr_lower, :mr_upper; color=:parameter)
+    lb_mr = data(df) * (band_mr + lines_mr)
+
+    lines_er = visual(Lines; linestyle=:dash) * mapping(:T, :er_mean; color=:parameter)
+    band_er = visual(Band; alpha=0.3) * mapping(:T, :er_lower, :er_upper; color=:parameter)
+    lb_er = data(df) * (band_er + lines_er)
+
+    fig, grid = draw(
+        lb_mr + lb_er;
+        figure=(;
+            title=L"Misclassification and exact recovery as $ %$(paramstring) $ varies",
+            titlealign=:center,
         ),
+        axis=(; width=500, height=300, limits=(nothing, (0.0, 1.0))),
+        legend=(; show=false),
     )
+
+    ax = fig[1, 1]
+    legend!(
+        ax,
+        grid;
+        tellheight=false,
+        tellwidth=false,
+        halign=:left,
+        valign=:top,
+        margin=(10, 10, 10, 10),
+    )
+
+    return fig
+end
+
+function plot_heatmap(
+    df_mean_bands::DataFrame,
+    feature::Symbol,
+    method::Symbol,
+    clustering::Symbol;
+    level::Float64=0.1,
+)
+    feature in [:er, :mr] || ArgumentError(
+        "Only exact recovery (:er) or misclassification rate (:mr) are supported features.",
+    )
+    str_method = string(method)
+    str_clustering = string(clustering)
+    ### heatmap
+    hm =
+        data(
+            @eval @filter(
+                df_mean_bands, method == $str_method, clustering == $str_clustering
+            )
+        ) *
+        visual(Heatmap) *
+        mapping(:T, :parameter, Symbol(feature, :_mean))
+
+    ### ranges
+    tmin = minimum(unique(df_mean_bands.T))
+    tmax = maximum(unique(df_mean_bands.T))
+    nmax = maximum(unique(df_mean_bands.parameter))
+    nmin = minimum(unique(df_mean_bands.parameter))
+
+    ### feature specific variables
+    if feature == :er
+        ts = range(tmin, tmax, 100)
+        ns = sqrt.(ts)
+        line_lab = L"T = N^2"
+        fig_title = "Exact recovery"
+        color_lab = "Probability"
+    else
+        id_ts = @chain df_mean_bands begin
+            @group_by(parameter)
+            combine(:mr_mean => x -> findfirst(x .< level))
+            _[!, :mr_mean_function][1:14]
+        end
+        ts = unique(df_mean_bands.T)[id_ts]
+        ns = unique(df_mean_bands.parameter)[1:14]
+        line_lab = "MMR = " * string(level)
+        fig_title = "Misclassification rate"
+        color_lab = "Mean"
+    end
+    ### line
+    df_line = (T=ts, parameter=ns)
+    line =
+        data(df_line) * mapping(:T, :parameter) * visual(Lines; color=:red, label=line_lab)
+
+    ###
+    fig, grid = draw(
+        scales(; X=(; label=L"T"), Y=(; label=L"N"), Color=(; label=color_lab));
+        figure=(; title=fig_title, titlealign=:center),
+        axis=(; width=300, height=500, limits=((tmin, tmax), (nmin, nmax))),
+        legend=(; show=false),
+    )(
+        hm + line
+    )
+
+    ### replace external legend by internal legend
+    ax = fig[1, 1]
+    legend!(
+        ax,
+        grid;
+        tellheight=false,
+        tellwidth=false,
+        halign=:left,
+        valign=:top,
+        margin=(10, 10, 10, 10),
+    )
+
+    return fig
 end
 #endregion
 
