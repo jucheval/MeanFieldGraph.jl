@@ -10,6 +10,10 @@ using Distributions
 using CSV
 using TableMetadataTools
 using LaTeXStrings
+using TidierData
+using CairoMakie
+using AlgebraOfGraphics
+using Latexify
 
 # FIXME : since σ̂sp is estimated up to +/- 1 factor, we use σ̂ag to decide which cluster is excitatory and which is inhibitory
 
@@ -30,12 +34,15 @@ function classiferrortable(
     },
     tvec;
     multi_thread::Bool=false,
+    methods::Vector{Symbol}=[:ag, :sp],
+    clusterings::Vector{Symbol}=[:kmeans, :hccomp, :hcsing, :hcavg, :hcward],
 )::DataFrame
     ## Set default
     N, r₊, β, λ, p, Nsimu = default_values
 
-    # FIXME A = Array{Float64}(undef, 10, length(tvec), Nsimu, length(Paramvec))
-    A = Array{Float64}(undef, length(tvec), Nsimu, length(Paramvec))
+    A = Array{Float64}(
+        undef, length(methods) * length(clusterings), length(tvec), Nsimu, length(Paramvec)
+    )
 
     for idparam in eachindex(Paramvec)
         ## Set varying parameter
@@ -53,20 +60,23 @@ function classiferrortable(
         model = MarkovChainModel(β * λ, λ, p)
         excitatory = MeanFieldGraph.N2excitatory(N, r₊)
         if multi_thread
+            println("Multi-thread activated on $(Threads.nthreads()) threads")
             println(
                 "classiferrortables, i=" *
                 string(idparam) *
                 " on " *
-                string(length(Paramvec)),
+                string(length(Paramvec)) *
+                ". " *
+                string(Paramsymbol) *
+                " = " *
+                string(Paramvec[idparam]),
             )
             Threads.@threads for idsimu in 1:Nsimu
                 data = rand(model, excitatory, T)
                 for idt in eachindex(tvec)
                     tmpdata = data[1:tvec[idt]]
-                    # FIXME A[:, idt, idsimu, idparam] = misclassificationrates(tmpdata, excitatory)
-                    σ̂ag = MeanFieldGraph.covariance_vector(tmpdata)
-                    A[idt, idsimu, idparam] = misclassificationrate(
-                        σ̂ag, excitatory, :kmeans
+                    A[:, idt, idsimu, idparam] = misclassificationrates(
+                        tmpdata, excitatory; methods=methods, clusterings=clusterings
                     )
                 end
             end
@@ -78,38 +88,25 @@ function classiferrortable(
                 data = rand(model, excitatory, T)
                 for idt in eachindex(tvec)
                     tmpdata = data[1:tvec[idt]]
-                    A[:, idt, idsimu, idparam] = misclassificationrates(tmpdata, excitatory)
+                    A[:, idt, idsimu, idparam] = misclassificationrates(
+                        tmpdata, excitatory; methods=methods, clusterings=clusterings
+                    )
                 end
             end
         end
     end
 
     Paramsymbol == :N ? Typeparam = Int : Typeparam = Float64
-    df = DataFrame(;
-        parameter=Typeparam[],
-        T=Int[],
-        miscl_rate_ag_kmeans=Float64[],
-        # miscl_rate_ag_hccomp=Float64[], FIXME
-        # miscl_rate_ag_hcsing=Float64[],
-        # miscl_rate_ag_hcavg=Float64[],
-        # miscl_rate_ag_hcward=Float64[],
-        # miscl_rate_sp_kmeans=Float64[],
-        # miscl_rate_sp_hccomp=Float64[],
-        # miscl_rate_sp_hcsing=Float64[],
-        # miscl_rate_sp_hcavg=Float64[],
-        # miscl_rate_sp_hcward=Float64[],
-    )
-    # _, n1, n2, n3 = size(A) FIXME
-    n1, n2, n3 = size(A)
+    df = DataFrame(; parameter=Typeparam[], T=Int[])
+    column_names = [
+        Symbol(:miscl_rate_, m, :_, c) => Float64[] for c in clusterings, m in methods
+    ]
+    insertcols!(df, column_names...)
+    _, n1, n2, n3 = size(A)
     for idparam in 1:n3
         for idsimu in 1:n2
             for idt in 1:n1
-                push!(df, (
-                    Paramvec[idparam],
-                    tvec[idt],
-                    # A[:, idt, idsimu, idparam]...FIXME
-                    A[idt, idsimu, idparam],
-                ))
+                push!(df, (Paramvec[idparam], tvec[idt], A[:, idt, idsimu, idparam]...))
             end
         end
     end
@@ -138,38 +135,29 @@ function metadatacomplete!(
     metadata!(df, "Varying parameter", String(Paramsymbol); style=:note)
 
     colmetadata!(df, :T, "label", "Time horizon used for the estimation"; style=:note)
-    methods_str = ["aggregated", "spectral"]
-    methods_symb = [:ag, :sp]
-    clusterings_str = [
-        "kmeans",
-        "hierarchical (complete)",
-        "hierarchical (single)",
-        "hierarchical (average)",
-        "hierarchical (ward)",
-    ]
-    clusterings_symb = [:kmeans, :hccomp, :hcsing, :hcavg, :hcward]
-    # for i in 1:2 FIXME
-    #     for j in 1:5
-    #         colmetadata!(
-    #             df,
-    #             Symbol(:miscl_rate_, methods_symb[i], :_, clusterings_symb[j]),
-    #             "label",
-    #             "Misclassification rate for the " *
-    #             methods_str[i] *
-    #             " method with " *
-    #             clusterings_str[j] *
-    #             " clustering";
-    #             style=:note,
-    #         )
-    #     end
-    # end
-    colmetadata!(
-        df,
-        :miscl_rate_ag_kmeans,
-        "label",
-        "Misclassification rate for the aggregated method with kmeans clustering";
-        style=:note,
+    methods_fullstr = Dict("ag" => "aggregated", "sp" => "spectral")
+    clusterings_fullstr = Dict(
+        "kmeans" => "kmeans",
+        "hccomp" => "hierarchical (complete)",
+        "hcsing" => "hierarchical (single)",
+        "hcavg" => "hierarchical (average)",
+        "hcward" => "hierarchical (ward)",
     )
+    for (i, col_str) in enumerate(names(df))
+        col_str in ("parameter", "T") && continue
+        _, _, method, clustering = split(col_str, "_")
+        colmetadata!(
+            df,
+            i,
+            "label",
+            "Misclassification rate for the " *
+            methods_fullstr[method] *
+            " method with " *
+            clusterings_fullstr[clustering] *
+            " clustering";
+            style=:note,
+        )
+    end
     return colmetadata!(
         df, :parameter, "label", "Value of the varying parameter"; style=:note
     )
@@ -177,26 +165,32 @@ end
 
 ## Compute misclassification rate for all methods
 function misclassificationrates(
-    data::DiscreteTimeData, excitatory::Vector{Bool}
+    data::DiscreteTimeData,
+    excitatory::Vector{Bool};
+    methods::Vector{Symbol}=[:ag, :sp],
+    clusterings::Vector{Symbol}=[:kmeans, :hccomp, :hcsing, :hcavg, :hcward],
 )::Vector{Float64}
     output = Float64[]
 
-    # aggregated classifications
     σ̂ag = MeanFieldGraph.covariance_vector(data)
-    for c in [:kmeans, :complete, :single, :average, :ward]
-        push!(output, misclassificationrate(σ̂ag, excitatory, c))
-    end
 
-    # spectral classifications
-    Σ̂ = MeanFieldGraph.covariance_matrix(data)
-    _, vecs = eigsolve(transpose(Σ̂) * Σ̂)
-    σ̂sp = vecs[1]
-    # FIXME : how to chose the sign of σ̂sp ?
-    if mapreduce(abs, +, σ̂ag - σ̂sp) > mapreduce(abs, +, σ̂ag + σ̂sp)
-        σ̂sp *= -1
-    end
-    for c in [:kmeans, :complete, :single, :average, :ward]
-        push!(output, misclassificationrate(σ̂sp, excitatory, c))
+    for method in methods
+        if method == :ag
+            # aggregated classifications
+            σ̂ = σ̂ag
+        else
+            # spectral classifications
+            Σ̂ = MeanFieldGraph.covariance_matrix(data)
+            _, vecs = eigsolve(transpose(Σ̂) * Σ̂)
+            σ̂ = vecs[1]
+            # FIXME : how to chose the sign of σ̂sp ?
+            if mapreduce(abs, +, σ̂ag - σ̂) > mapreduce(abs, +, σ̂ag + σ̂)
+                σ̂ *= -1
+            end
+        end
+        for c in clusterings
+            push!(output, misclassificationrate(σ̂, excitatory, c))
+        end
     end
 
     return output
@@ -211,8 +205,11 @@ function misclassificationrate(
             kmeans(transpose(σ), 2; init=[argmin(σ), argmax(σ)])
         )
     else
+        linkages = Dict(
+            :hccomp => :complete, :hcsing => :single, :hcavg => :average, :hcward => :ward
+        )
         distances = [abs(σ[i] - σ[j]) for i in eachindex(σ), j in eachindex(σ)]
-        ct = cutree(hclust(distances; linkage=clustering); k=2)
+        ct = cutree(hclust(distances; linkage=linkages[clustering]); k=2)
         id_excitatory = ct[argmax(σ)]
         classif = ct .== id_excitatory
     end
