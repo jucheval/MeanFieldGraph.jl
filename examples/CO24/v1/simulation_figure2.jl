@@ -1,4 +1,4 @@
-include("v1_functions_classification.jl")
+include("functions_classification.jl")
 
 ## Informations for reproducibility
 # gitcommit : e01748726f8295d48d30155bb376f073d2f7fd34

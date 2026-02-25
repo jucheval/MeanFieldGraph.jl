@@ -14,4 +14,4 @@ df_mean_bands = mmr_per(df_wide)
 
 fig = plot_heatmap(df_mean_bands, :mr, :ag, :kmeans)
 
-save("plots/CO24/heatmap_mr.png", fig)
+save("plots/CO24/heatmap_mr.pdf", fig)

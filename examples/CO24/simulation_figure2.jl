@@ -61,9 +61,7 @@ tvec = floor.(Int, collect(range(tmin, T, length_tvec)))
 
 Random.seed!(1)
 for N in Nvec ## Since it takes a long time, a CSV is saved for each N
-    df = classiferrortable(
-        :N, [N], default_values, tvec; multi_thread=true, clusterings=[:kmeans]
-    )
+    df = classiferrortable(:N, [N], default_values, tvec; multi_thread=true, methods=[:ag]) # restrict to aggregated method to save computational time
 
     # Save
     CSV.write("data/CO24/data_for_color_plot_mr_N=" * string(N) * ".csv", df)

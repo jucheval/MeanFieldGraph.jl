@@ -15,6 +15,8 @@ using CairoMakie
 using AlgebraOfGraphics
 using Latexify
 
+# TODO : tidy the package dependencies
+
 # FIXME : since σ̂sp is estimated up to +/- 1 factor, we use σ̂ag to decide which cluster is excitatory and which is inhibitory
 
 #region Simulation and creation of the dataset
@@ -257,45 +259,37 @@ end
 
 #region Plot functions
 function plotclassification(df::DataFrame)
-    # paramvec = unique(df.parameter)
     paramstring = metadata(df, "Varying parameter")
-    # Nsimu = metadata(df, "Number of simulations")
-    # col = indexin(df.parameter, paramvec)
-    # q = quantile(Normal(), 0.975)
-    df = @mutate(df, parameter = string(parameter))
+    df = @mutate(df, parameter = string(parameter)) # so it is treated as categorical
 
     paramstring == "r₊" && (paramstring = "r_+") # modified before passing to latexstring
-    colmetadata!(df, :parameter, "label", ""; style=:note)
-    colmetadata!(df, :T, "label", L"T"; style=:note)
+    colmetadata!(df, :parameter, "label", ""; style=:note) # so that the legend title is empty
 
+    ### misclassification rate - mean & standard deviation
     lines_mr = visual(Lines) * mapping(:T, :mr_mean; color=:parameter)
     band_mr = visual(Band; alpha=0.3) * mapping(:T, :mr_lower, :mr_upper; color=:parameter)
     lb_mr = data(df) * (band_mr + lines_mr)
 
+    ### exact recovery - mean & confidence interval
     lines_er = visual(Lines; linestyle=:dash) * mapping(:T, :er_mean; color=:parameter)
     band_er = visual(Band; alpha=0.3) * mapping(:T, :er_lower, :er_upper; color=:parameter)
     lb_er = data(df) * (band_er + lines_er)
 
+    ### plot
     fig, grid = draw(
-        lb_mr + lb_er;
+        lb_mr + lb_er,
+        scales(; X=(; label=L"T"), Y=(; label=""));
         figure=(;
             title=L"Misclassification and exact recovery as $ %$(paramstring) $ varies",
             titlealign=:center,
         ),
         axis=(; width=500, height=300, limits=(nothing, (0.0, 1.0))),
-        legend=(; show=false),
+        legend=(; show=false), # remove outside legend
     )
 
+    ### add inside legend
     ax = fig[1, 1]
-    legend!(
-        ax,
-        grid;
-        tellheight=false,
-        tellwidth=false,
-        halign=:left,
-        valign=:top,
-        margin=(10, 10, 10, 10),
-    )
+    legend!(ax, grid; halign=:left, valign=:top, margin=(10, 10, 10, 10))
 
     return fig
 end
@@ -312,13 +306,13 @@ function plot_heatmap(
     )
     str_method = string(method)
     str_clustering = string(clustering)
+    df_mean_bands = @eval @filter(
+        df_mean_bands, method == $str_method, clustering == $str_clustering
+    )
+
     ### heatmap
     hm =
-        data(
-            @eval @filter(
-                df_mean_bands, method == $str_method, clustering == $str_clustering
-            )
-        ) *
+        data(df_mean_bands) *
         visual(Heatmap) *
         mapping(:T, :parameter, Symbol(feature, :_mean))
 
@@ -339,40 +333,37 @@ function plot_heatmap(
         id_ts = @chain df_mean_bands begin
             @group_by(parameter)
             combine(:mr_mean => x -> findfirst(x .< level))
-            _[!, :mr_mean_function][1:14]
+            _[!, :mr_mean_function]
         end
-        ts = unique(df_mean_bands.T)[id_ts]
-        ns = unique(df_mean_bands.parameter)[1:14]
+        ts = map(id -> isnothing(id) ? missing : unique(df_mean_bands.T)[id], id_ts)  # add missing values for T which are not plotted
+        ns = unique(df_mean_bands.parameter)
         line_lab = "MMR = " * string(level)
         fig_title = "Misclassification rate"
         color_lab = "Mean"
     end
+
     ### line
     df_line = (T=ts, parameter=ns)
     line =
         data(df_line) * mapping(:T, :parameter) * visual(Lines; color=:red, label=line_lab)
 
-    ###
+    ### plot
     fig, grid = draw(
-        scales(; X=(; label=L"T"), Y=(; label=L"N"), Color=(; label=color_lab));
+        scales(;
+            X=(; label=L"T"),
+            Y=(; label=L"N"),
+            Color=(; label=color_lab, colorrange=(0.0, 0.5), colormap=Reverse(:viridis)),
+        );
         figure=(; title=fig_title, titlealign=:center),
         axis=(; width=300, height=500, limits=((tmin, tmax), (nmin, nmax))),
-        legend=(; show=false),
+        legend=(; show=false), # remove outside legend
     )(
         hm + line
     )
 
-    ### replace external legend by internal legend
+    ### add inside legend
     ax = fig[1, 1]
-    legend!(
-        ax,
-        grid;
-        tellheight=false,
-        tellwidth=false,
-        halign=:left,
-        valign=:top,
-        margin=(10, 10, 10, 10),
-    )
+    legend!(ax, grid; halign=:left, valign=:top, margin=(10, 10, 10, 10))
 
     return fig
 end

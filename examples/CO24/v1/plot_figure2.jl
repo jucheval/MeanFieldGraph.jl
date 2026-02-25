@@ -1,4 +1,4 @@
-include("v1_functions_classification.jl")
+include("functions_classification.jl")
 
 begin # Load
     df = CSV.read("data/CO24/v1/data_for_color_plot.csv", DataFrame)

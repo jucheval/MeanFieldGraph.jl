@@ -1,4 +1,4 @@
-include("v1_functions_classification.jl")
+include("functions_classification.jl")
 
 # N varies
 paramstring = "N"
