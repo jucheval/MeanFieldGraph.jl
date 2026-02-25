@@ -16,8 +16,9 @@ function classification(
         σ̂ = covariance_vector(data)
     elseif method == :spectral
         Σ̂ = covariance_matrix(data)
-        _, vecs = eigsolve(transpose(Σ̂) * Σ̂)
+        _, vecs = eigsolve(transpose(Σ̂) * Σ̂) # faster than full SVD
         σ̂ = vecs[1]
+        # FIXME : how to chose the sign of σ̂sp ?
     else
         throw(ArgumentError("Unsupported method $method"))
     end
