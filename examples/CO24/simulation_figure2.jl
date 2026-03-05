@@ -5,7 +5,7 @@ include("functions_classification.jl")
 
 #region Left plot
 ## Simulation (multi-threaded)
-default_values = (N=250, r₊=0.5, β=0.5, λ=0.5, p=0.5, Nsimu=Int(1e3))
+default_values = (N=50, r₊=0.5, β=0.5, λ=0.5, p=0.5, Nsimu=Int(1e3))
 
 # Specific values
 Nvec = 10:12:250

@@ -1,23 +1,22 @@
 using MeanFieldGraph
 using Clustering
 using KrylovKit
+
 using ProgressLogging
-using DataFrames
+
+using CSV
+
+using Distributions
 using Random
 using Statistics
-using StatsPlots
-using Distributions
-using CSV
+
+using DataFrames
+using DataFramesMeta
 using TableMetadataTools
-using LaTeXStrings
-using TidierData
+
 using CairoMakie
 using AlgebraOfGraphics
-using Latexify
-
-# TODO : tidy the package dependencies
-
-# FIXME : since σ̂sp is estimated up to +/- 1 factor, we use σ̂ag to decide which cluster is excitatory and which is inhibitory
+using LaTeXStrings
 
 #region Simulation and creation of the dataset
 """
@@ -224,45 +223,46 @@ end
 #region Post simulation operations
 ### Compute the mean misclassification rate and probability of exact recovery + bands for a wide data set
 function mmr_per(df_wide)
-    # lengthen data set and select columns
-    df = @chain df_wide begin
-        @pivot_longer(-[parameter, T], values_to = "misclassification_rate")
-        @separate(variable, (a, b, method, clustering), "_")
-        @select(-[a, b])
+    output = @chain df_wide begin
+        ### reshape from wide to long
+        stack(Not([:parameter, :T]); value_name=:misclassification_rate)
+        ### extract method and clustering from the column names
+        @rtransform! _ @astable begin
+            (a, b, c, d) = split(:variable, "_")
+            :method = c
+            :clustering = d
+        end
+        ### remove the column with the original column names
+        @select!(Not(:variable))
+        ### compute mean and standard error for misclassification rate and exact recovery
+        @groupby([:parameter, :T, :method, :clustering])
+        @combine begin
+            :mr_mean = mean(:misclassification_rate)
+            :mr_std = std(:misclassification_rate)
+            :er_mean = mean(:misclassification_rate .== 0)
+            :er_std = std(:misclassification_rate .== 0)
+        end
+        ### compute lower and upper bounds for bands
+        @transform! _ @astable begin
+            # multiplicative factor for the confidence interval of the exact recovery rate
+            a = quantile(Normal(), 0.975) / sqrt(metadata(_, "Number of simulations"))
+            :mr_lower = :mr_mean - :mr_std
+            :mr_upper = :mr_mean + :mr_std
+            :er_lower = :er_mean - a * :er_std
+            :er_upper = :er_mean + a * :er_std
+        end
     end
 
-    # compute mean and standard error for misclassification rate and exact recovery
-    df_mean = @chain df begin
-        @group_by([parameter, T, method, clustering])
-        @summarize(
-            mr_mean = mean(misclassification_rate),
-            mr_std = std(misclassification_rate),
-            er_mean = mean(misclassification_rate == 0),
-            er_std = std(misclassification_rate == 0)
-        )
-        @ungroup
-    end
-
-    # compute lower and upper bounds for bands
-    factor = quantile(Normal(), 0.975) / sqrt(metadata(df_mean, "Number of simulations"))
-    df_mean_bands = transform(
-        df_mean,
-        [:mr_mean, :mr_std] => ((x, y) -> x - y) => :mr_lower,
-        [:mr_mean, :mr_std] => ((x, y) -> x + y) => :mr_upper,
-        [:er_mean, :er_std] => ((x, y) -> x - factor * y) => :er_lower,
-        [:er_mean, :er_std] => ((x, y) -> x + factor * y) => :er_upper,
-    )
-
-    return df_mean_bands
+    return output
 end
 #endregion
 
 #region Plot functions
 function plotclassification(df::DataFrame)
     paramstring = metadata(df, "Varying parameter")
-    df = @mutate(df, parameter = string(parameter)) # so it is treated as categorical
-
     paramstring == "r₊" && (paramstring = "r_+") # modified before passing to latexstring
+
+    @rtransform!(df, :parameter = string(:parameter)) # so it is treated as categorical
     colmetadata!(df, :parameter, "label", ""; style=:note) # so that the legend title is empty
 
     ### misclassification rate - mean & standard deviation
@@ -304,23 +304,20 @@ function plot_heatmap(
     feature in [:er, :mr] || ArgumentError(
         "Only exact recovery (:er) or misclassification rate (:mr) are supported features.",
     )
-    str_method = string(method)
-    str_clustering = string(clustering)
-    df_mean_bands = @eval @filter(
-        df_mean_bands, method == $str_method, clustering == $str_clustering
+
+    ### filter data frame for method and clustering of interest
+    df = @rsubset(
+        df_mean_bands, :method == string(method), :clustering == string(clustering)
     )
 
     ### heatmap
-    hm =
-        data(df_mean_bands) *
-        visual(Heatmap) *
-        mapping(:T, :parameter, Symbol(feature, :_mean))
+    hm = data(df) * visual(Heatmap) * mapping(:T, :parameter, Symbol(feature, :_mean))
 
     ### ranges
-    tmin = minimum(unique(df_mean_bands.T))
-    tmax = maximum(unique(df_mean_bands.T))
-    nmax = maximum(unique(df_mean_bands.parameter))
-    nmin = minimum(unique(df_mean_bands.parameter))
+    tmin = minimum(unique(df.T))
+    tmax = maximum(unique(df.T))
+    nmax = maximum(unique(df.parameter))
+    nmin = minimum(unique(df.parameter))
 
     ### feature specific variables
     if feature == :er
@@ -330,13 +327,13 @@ function plot_heatmap(
         fig_title = "Exact recovery"
         color_lab = "Probability"
     else
-        id_ts = @chain df_mean_bands begin
-            @group_by(parameter)
-            combine(:mr_mean => x -> findfirst(x .< level))
-            _[!, :mr_mean_function]
+        id_ts = @chain df begin
+            @groupby(:parameter)
+            @combine(:tmp = findfirst(:mr_mean .< level))
+            _[!, :tmp]
         end
-        ts = map(id -> isnothing(id) ? missing : unique(df_mean_bands.T)[id], id_ts)  # add missing values for T which are not plotted
-        ns = unique(df_mean_bands.parameter)
+        ts = map(id -> isnothing(id) ? missing : unique(df.T)[id], id_ts)  # add missing values for T which are not plotted
+        ns = unique(df.parameter)
         line_lab = "MMR = " * string(level)
         fig_title = "Misclassification rate"
         color_lab = "Mean"
@@ -348,11 +345,13 @@ function plot_heatmap(
         data(df_line) * mapping(:T, :parameter) * visual(Lines; color=:red, label=line_lab)
 
     ### plot
+    colmap = feature == :er ? :viridis : Reverse(:viridis)
+    colrange = feature == :er ? (0.0, 1.0) : (0.0, 0.5)
     fig, grid = draw(
         scales(;
             X=(; label=L"T"),
             Y=(; label=L"N"),
-            Color=(; label=color_lab, colorrange=(0.0, 0.5), colormap=Reverse(:viridis)),
+            Color=(; label=color_lab, colorrange=colrange, colormap=colmap),
         );
         figure=(; title=fig_title, titlealign=:center),
         axis=(; width=300, height=500, limits=((tmin, tmax), (nmin, nmax))),
