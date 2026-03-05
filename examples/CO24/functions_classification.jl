@@ -263,7 +263,7 @@ function plotclassification(df::DataFrame)
     paramstring == "r₊" && (paramstring = "r_+") # modified before passing to latexstring
 
     @rtransform!(df, :parameter = string(:parameter)) # so it is treated as categorical
-    colmetadata!(df, :parameter, "label", ""; style=:note) # so that the legend title is empty
+    colmetadata!(df, :parameter, "label", latexstring(paramstring); style=:note) # modifies legend title
 
     ### misclassification rate - mean & standard deviation
     lines_mr = visual(Lines) * mapping(:T, :mr_mean; color=:parameter)
@@ -279,10 +279,6 @@ function plotclassification(df::DataFrame)
     fig, grid = draw(
         lb_mr + lb_er,
         scales(; X=(; label=L"T"), Y=(; label=""));
-        figure=(;
-            title=L"Misclassification and exact recovery as $ %$(paramstring) $ varies",
-            titlealign=:center,
-        ),
         axis=(; width=500, height=300, limits=(nothing, (0.0, 1.0))),
         legend=(; show=false), # remove outside legend
     )
@@ -354,7 +350,7 @@ function plot_heatmap(
             Color=(; label=color_lab, colorrange=colrange, colormap=colmap),
         );
         figure=(; title=fig_title, titlealign=:center),
-        axis=(; width=300, height=500, limits=((tmin, tmax), (nmin, nmax))),
+        axis=(; width=300, height=300, limits=((tmin, tmax), (nmin, nmax))),
         legend=(; show=false), # remove outside legend
     )(
         hm + line
@@ -377,7 +373,15 @@ function simulationandsave(
     },
     tvec,
 )
-    df = classiferrortable(Paramsymbol, Paramvec, default_values, tvec)
+    df = classiferrortable(
+        Paramsymbol,
+        Paramvec,
+        default_values,
+        tvec;
+        multi_thread=true,
+        methods=[:ag],
+        clusterings=[:kmeans],
+    )
     paramstring = string(Paramsymbol)
 
     CSV.write("data/CO24/classification_vary_" * paramstring * ".csv", df)
