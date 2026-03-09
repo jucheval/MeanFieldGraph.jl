@@ -53,14 +53,18 @@ end
 end
 
 ## Exact recovery
+factor = quantile(Normal(), 0.975) / sqrt(metadata(df_mean_bands, "Number of simulations"))
 df_er = @chain df_mean_bands begin
-    # value of interest is PER ± standard error
+    # value of interest is PER ± standard confidence interval radius
     @rselect(
         :N = :parameter,
         :T = :T,
         :method = :method,
         :clustering = :clustering,
-        :er = string(round_percent(:er_mean)) * " ± " * string(round_percent(:er_std)),
+        :er =
+            string(round_percent(:er_mean)) *
+            " ± " *
+            string(round_percent(factor * :er_std)),
     )
     # create a column with the combination of clustering and method to be able to unstack both at the same time
     @rtransform!(:col_name = string(:clustering, "_", :method))
