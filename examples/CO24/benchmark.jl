@@ -1,3 +1,6 @@
+using Pkg
+Pkg.activate(joinpath(@__DIR__, ".."))
+
 using BenchmarkTools
 using MeanFieldGraph
 using KrylovKit
