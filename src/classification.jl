@@ -5,7 +5,7 @@ Estimates the two underlying communities (one excitatory and one inhibitory) fro
 
 # Keyword arguments
     - `method::Symbol`: the method applied to estimate the covariance vector σ. Valid choices are: `:aggregated` (the default) and `:spectral`.
-    - `clustering::Symbol`: the clustering method applied to the estimated covariance vector. Valid choices are: `:kmeans` (the default) and `:hclust`.
+    - `clustering::Symbol`: the clustering method applied to the estimated covariance vector. Valid choices are: `:kmeans` (the default), `:threshold`, and the *linkage* choices for the `hclust` function (`:single`, `:average`, `:complete`, `:ward`).
 """
 function classification(
     data::DiscreteTimeData; method::Symbol=:aggregated, clustering::Symbol=:kmeans
@@ -15,21 +15,33 @@ function classification(
     if method == :aggregated
         σ̂ = covariance_vector(data)
     elseif method == :spectral
+        # compute the leading singular vector of the covariance matrix
         Σ̂ = covariance_matrix(data)
         _, vecs = eigsolve(transpose(Σ̂) * Σ̂) # faster than full SVD
-        σ̂ = vecs[1]
-        # FIXME : how to chose the sign of σ̂sp ?
+        v̌ = vecs[1]
+
+        # sign disambiguation
+        σ̂_ag = sum(Σ̂; dims=1)[1, :]
+        m_v̌ = mean(v̌)
+        P̌ = v̌ .>= m_v̌
+        σ̌₊ = sum(σ̂_ag[P̌]) / sum(P̌)
+        σ̌₋ = sum(σ̂_ag[.!P̌]) / sum(.!P̌)
+
+        σ̂ = σ̌₊ >= σ̌₋ ? v̌ : -v̌
     else
         throw(ArgumentError("Unsupported method $method"))
     end
 
-    # Clustering based on the estimated σ̂
+    # Clustering based on the estimator σ̂
     if clustering == :kmeans
         initialisation = [argmin(σ̂), argmax(σ̂)]
         output = cluster2bool(kmeans(transpose(σ̂), 2; init=initialisation))
-    elseif clustering == :hclust
+    elseif clustering == :threshold
+        threshold = mean(σ̂)
+        output = σ̂ .>= threshold
+    elseif clustering in (:single, :average, :complete, :ward)
         distances = [abs(σ̂[i] - σ̂[j]) for i in eachindex(σ̂), j in eachindex(σ̂)]
-        ct = cutree(hclust(distances); k=2)
+        ct = cutree(hclust(distances; linkage=clustering); k=2)
         id_excitatory = ct[argmax(σ̂)]
         output = ct .== id_excitatory
     else

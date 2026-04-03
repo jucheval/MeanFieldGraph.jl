@@ -39,7 +39,7 @@ function classiferrortable(
     tvec;
     multi_thread::Bool=false,
     methods::Vector{Symbol}=[:ag, :sp],
-    clusterings::Vector{Symbol}=[:kmeans, :hccomp, :hcsing, :hcavg, :hcward],
+    clusterings::Vector{Symbol}=[:kmeans, :threshold, :single, :average, :complete, :ward],
 )::DataFrame
     ## Set default
     N, r₊, β, λ, p, Nsimu = default_values
@@ -142,10 +142,11 @@ function metadatacomplete!(
     methods_fullstr = Dict("ag" => "aggregated", "sp" => "spectral")
     clusterings_fullstr = Dict(
         "kmeans" => "kmeans",
-        "hccomp" => "hierarchical (complete)",
-        "hcsing" => "hierarchical (single)",
-        "hcavg" => "hierarchical (average)",
-        "hcward" => "hierarchical (ward)",
+        "threshold" => "mean threshold",
+        "single" => "hierarchical (single)",
+        "average" => "hierarchical (average)",
+        "complete" => "hierarchical (complete)",
+        "ward" => "hierarchical (ward)",
     )
     for (i, col_str) in enumerate(names(df))
         col_str in ("parameter", "T") && continue
@@ -172,25 +173,27 @@ function misclassificationrates(
     data::DiscreteTimeData,
     excitatory::Vector{Bool};
     methods::Vector{Symbol}=[:ag, :sp],
-    clusterings::Vector{Symbol}=[:kmeans, :hccomp, :hcsing, :hcavg, :hcward],
+    clusterings::Vector{Symbol}=[:kmeans, :threshold, :single, :average, :complete, :ward],
 )::Vector{Float64}
     output = Float64[]
 
     σ̂ag = MeanFieldGraph.covariance_vector(data)
 
     for method in methods
-        if method == :ag
-            # aggregated classifications
+        if method == :ag # aggregated estimation
             σ̂ = σ̂ag
-        else
-            # spectral classifications
+        else # spectral estimation
             Σ̂ = MeanFieldGraph.covariance_matrix(data)
-            _, vecs = eigsolve(transpose(Σ̂) * Σ̂)
-            σ̂ = vecs[1]
-            # FIXME : how to chose the sign of σ̂sp ?
-            if mapreduce(abs, +, σ̂ag - σ̂) > mapreduce(abs, +, σ̂ag + σ̂)
-                σ̂ *= -1
-            end
+            _, vecs = eigsolve(transpose(Σ̂) * Σ̂) # faster than full SVD
+            v̌ = vecs[1]
+
+            # sign disambiguation
+            m_v̌ = mean(v̌)
+            P̌ = v̌ .>= m_v̌
+            σ̌₊ = sum(σ̂ag[P̌]) / sum(P̌)
+            σ̌₋ = sum(σ̂ag[.!P̌]) / sum(.!P̌)
+
+            σ̂ = σ̌₊ >= σ̌₋ ? v̌ : -v̌
         end
         for c in clusterings
             push!(output, misclassificationrate(σ̂, excitatory, c))
@@ -208,12 +211,12 @@ function misclassificationrate(
         classif = MeanFieldGraph.cluster2bool(
             kmeans(transpose(σ), 2; init=[argmin(σ), argmax(σ)])
         )
+    elseif clustering == :threshold
+        threshold = mean(σ)
+        classif = σ .>= threshold
     else
-        linkages = Dict(
-            :hccomp => :complete, :hcsing => :single, :hcavg => :average, :hcward => :ward
-        )
         distances = [abs(σ[i] - σ[j]) for i in eachindex(σ), j in eachindex(σ)]
-        ct = cutree(hclust(distances; linkage=linkages[clustering]); k=2)
+        ct = cutree(hclust(distances; linkage=clustering); k=2)
         id_excitatory = ct[argmax(σ)]
         classif = ct .== id_excitatory
     end
@@ -377,13 +380,7 @@ function simulationandsave(
     tvec,
 )
     df = classiferrortable(
-        Paramsymbol,
-        Paramvec,
-        default_values,
-        tvec;
-        multi_thread=true,
-        methods=[:ag],
-        clusterings=[:kmeans],
+        Paramsymbol, Paramvec, default_values, tvec; multi_thread=true, methods=[:ag]
     )
     paramstring = string(Paramsymbol)
 
