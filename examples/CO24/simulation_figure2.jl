@@ -1,7 +1,7 @@
 include("functions_classification.jl")
 
 ### Informations for reproducibility
-# gitcommit : XXX
+# gitcommit : d9cdda27e086151d37b742fa72e4c182a6ebfe5c
 
 #region Left plot
 ## Simulation (multi-threaded)
