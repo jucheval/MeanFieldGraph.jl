@@ -12,6 +12,7 @@ length_tvec = 100
 tmin = 10
 tvec = floor.(Int, collect(range(tmin, T, length_tvec)))
 
+# method = :ag, all clustering
 Random.seed!(1)
 simulationandsave(:N, [10, 100, 200], default_values, tvec)
 Random.seed!(1)

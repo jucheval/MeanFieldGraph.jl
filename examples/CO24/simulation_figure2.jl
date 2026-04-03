@@ -14,8 +14,8 @@ length_tvec = 20
 tmin = 10
 tvec = floor.(Int, collect(range(tmin, T, length_tvec)))
 
-Random.seed!(1)
 for N in Nvec ## Since it takes a long time, a CSV is saved for each N
+    Random.seed!(N)
     df = classiferrortable(:N, [N], default_values, tvec; multi_thread=true)
 
     # Save
@@ -59,8 +59,8 @@ length_tvec = 100
 tmin = 10
 tvec = floor.(Int, collect(range(tmin, T, length_tvec)))
 
-Random.seed!(1)
 for N in Nvec ## Since it takes a long time, a CSV is saved for each N
+    Random.seed!(N)
     df = classiferrortable(:N, [N], default_values, tvec; multi_thread=true, methods=[:ag]) # restrict to aggregated method to save computational time
 
     # Save
