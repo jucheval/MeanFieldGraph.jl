@@ -22,18 +22,23 @@ function estimators(
 
     Z_T = sum(X; dims=2)
     ∑X = sum(X; dims=1)
+    cs_∑X = cumsum(vec(∑X))
     Z̄_T = mean(Z_T)
     m̂ = Z̄_T / T
     v̂ = (N) * (T + 1) * T^(-3) * (mean(Z_T .^ 2) - T / (T + 1) * (Z̄_T + Z̄_T^2))
     WΔ = 0.0
     for iter in 1:div(T, Δ)
-        WΔ += (N) / T * (sum(∑X[(1 + (iter - 1) * Δ):(iter * Δ)]) / (N) - Δ * m̂)^2
+        lo = 1 + (iter - 1) * Δ
+        hi = iter * Δ
+        block_sum = lo == 1 ? cs_∑X[hi] : cs_∑X[hi] - cs_∑X[lo - 1]
+        WΔ += (N) / T * (block_sum / (N) - Δ * m̂)^2
     end
     W2Δ = 0.0
     for iter in 1:div(T, 2 * Δ)
-        W2Δ +=
-            (N) / T *
-            (sum(∑X[(1 + (iter - 1) * 2 * Δ):(iter * 2 * Δ)]) / (N) - 2 * Δ * m̂)^2
+        lo = 1 + (iter - 1) * 2 * Δ
+        hi = iter * 2 * Δ
+        block_sum = lo == 1 ? cs_∑X[hi] : cs_∑X[hi] - cs_∑X[lo - 1]
+        W2Δ += (N) / T * (block_sum / (N) - 2 * Δ * m̂)^2
     end
     ŵ = 2 * W2Δ - WΔ
 
@@ -52,6 +57,7 @@ function estimators(
 
     Z_T = sum(X; dims=2)
     ∑X = sum(X; dims=1)
+    cs_∑X = cumsum(vec(∑X))
     Z̄_T = mean(Z_T)
     m̂ = Z̄_T / T
     v̂ = (N) * (T + 1) * T^(-3) * (mean(Z_T .^ 2) - T / (T + 1) * (Z̄_T + Z̄_T^2))
@@ -62,13 +68,17 @@ function estimators(
         end
         WΔ = 0.0
         for iter in 1:div(T, Δ)
-            WΔ += (N) / T * (sum(∑X[(1 + (iter - 1) * Δ):(iter * Δ)]) / (N) - Δ * m̂)^2
+            lo = 1 + (iter - 1) * Δ
+            hi = iter * Δ
+            block_sum = lo == 1 ? cs_∑X[hi] : cs_∑X[hi] - cs_∑X[lo - 1]
+            WΔ += (N) / T * (block_sum / (N) - Δ * m̂)^2
         end
         W2Δ = 0.0
         for iter in 1:div(T, 2 * Δ)
-            W2Δ +=
-                (N) / T *
-                (sum(∑X[(1 + (iter - 1) * 2 * Δ):(iter * 2 * Δ)]) / (N) - 2 * Δ * m̂)^2
+            lo = 1 + (iter - 1) * 2 * Δ
+            hi = iter * 2 * Δ
+            block_sum = lo == 1 ? cs_∑X[hi] : cs_∑X[hi] - cs_∑X[lo - 1]
+            W2Δ += (N) / T * (block_sum / (N) - 2 * Δ * m̂)^2
         end
         push!(ŵ, 2 * W2Δ - WΔ)
     end
