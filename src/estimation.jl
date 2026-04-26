@@ -14,7 +14,7 @@ function estimators(
         throw(ArgumentError("Δ is $Δ but must be non negative"))
     end
     if Δ == 0
-        Δ = floor(Int, log(length(data)))
+        Δ = max(1, floor(Int, log(length(data))))
     end
 
     N, T = size(data)
@@ -58,7 +58,7 @@ function estimators(
     ŵ = Float64[]
     for Δ in Δvec
         if Δ == 0
-            Δ = floor(Int, log(length(data)))
+            Δ = max(1, floor(Int, log(length(data))))
         end
         WΔ = 0.0
         for iter in 1:div(T, Δ)
