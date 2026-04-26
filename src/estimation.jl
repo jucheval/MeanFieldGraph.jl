@@ -14,7 +14,7 @@ function estimators(
         throw(ArgumentError("Δ is $Δ but must be non negative"))
     end
     if Δ == 0
-        Δ = floor(Int, log(length(data)))
+        Δ = max(1, floor(Int, log(length(data))))
     end
 
     N, T = size(data)
@@ -25,11 +25,11 @@ function estimators(
     Z̄_T = mean(Z_T)
     m̂ = Z̄_T / T
     v̂ = (N) * (T + 1) * T^(-3) * (mean(Z_T .^ 2) - T / (T + 1) * (Z̄_T + Z̄_T^2))
-    WΔ = 0.
+    WΔ = 0.0
     for iter in 1:div(T, Δ)
         WΔ += (N) / T * (sum(∑X[(1 + (iter - 1) * Δ):(iter * Δ)]) / (N) - Δ * m̂)^2
     end
-    W2Δ = 0.
+    W2Δ = 0.0
     for iter in 1:div(T, 2 * Δ)
         W2Δ +=
             (N) / T *
@@ -58,13 +58,13 @@ function estimators(
     ŵ = Float64[]
     for Δ in Δvec
         if Δ == 0
-            Δ = floor(Int, log(length(data)))
+            Δ = max(1, floor(Int, log(length(data))))
         end
-        WΔ = 0.
+        WΔ = 0.0
         for iter in 1:div(T, Δ)
             WΔ += (N) / T * (sum(∑X[(1 + (iter - 1) * Δ):(iter * Δ)]) / (N) - Δ * m̂)^2
         end
-        W2Δ = 0.
+        W2Δ = 0.0
         for iter in 1:div(T, 2 * Δ)
             W2Δ +=
                 (N) / T *
@@ -103,10 +103,13 @@ function Distributions.fit(
 end
 
 ## Auxiliary functions
+_safe_bernoulli_variance(m::Float64) = max(eps(Float64), m * (1 - m))
+
 function ϕ(m::Float64, v::Float64, w_or_d::Float64, r₊::Float64)::Tuple{Float64,Float64}
     r₋ = 1 - r₊
+    mvar = _safe_bernoulli_variance(m)
     if abs(r₊ - r₋) < 1e-3
-        ϕ₁ = w_or_d / (m * (1 - m)) - 1
+        ϕ₁ = w_or_d / mvar - 1
     else
         ϕ₁ = (1 - w_or_d)^2 / (r₊ - r₋)^2
     end
@@ -118,7 +121,9 @@ function ϕ(m::Float64, v::Float64, w_or_d::Float64, r₊::Float64)::Tuple{Float
     return ϕ₁, ϕ₂
 end
 
-function Φ_aux(m::Float64, v::Float64, w_or_d::Float64, r₊::Float64)::Tuple{Float64,Float64,Float64}
+function Φ_aux(
+    m::Float64, v::Float64, w_or_d::Float64, r₊::Float64
+)::Tuple{Float64,Float64,Float64}
     r₋ = 1 - r₊
     ϕ₁, ϕ₂ = ϕ(m, v, w_or_d, r₊)
     Φ₁ = m * (1 - (r₊ - r₋) * sqrt(ϕ₁)) - r₋ * sqrt(ϕ₁)
@@ -135,11 +140,12 @@ end
 
 function Φ(m::Float64, v::Float64, w::Float64, r₊::Float64)::Tuple{Float64,Float64,Float64}
     r₋ = 1 - r₊
+    mvar = _safe_bernoulli_variance(m)
     if abs(r₊ - r₋) < 1e-3
         return Φ_aux(m, v, w, r₊)
     end
 
-    κ = (r₊ - r₋)^2 * w / (m * (1 - m))
+    κ = (r₊ - r₋)^2 * w / mvar
 
     if abs(κ - 4 * r₊ * r₋) < 1e-3
         d = (8 * r₊ * r₋)^(-1)
@@ -197,7 +203,9 @@ function distance2admissibleset(μ::Float64, λ::Float64, p::Float64)::Float64
     return d1 + d2 + d3
 end
 
-function projection2admissibleset(μ::Float64, λ::Float64, p::Float64)::Tuple{Float64,Float64,Float64}
+function projection2admissibleset(
+    μ::Float64, λ::Float64, p::Float64
+)::Tuple{Float64,Float64,Float64}
     λ = min(1, max(0, λ))
     p = min(1, max(0, p))
     μ = min(λ, max(0, μ))

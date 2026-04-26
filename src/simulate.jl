@@ -128,7 +128,7 @@ function backward_step(
     model = modelconnec.model
     N = size(modelconnec)
     λ = model.λ
-    β = model.μ / λ
+    β = iszero(λ) ? 0.0 : model.μ / λ
     θ = modelconnec.θ
     values = Dict{Int,Bool}()
     remaining_nodes = Int[]
@@ -159,7 +159,7 @@ function forward_simulation!(
     model = modelconnec.model
     N = size(modelconnec)
     λ = model.λ
-    β = model.μ / λ
+    β = iszero(λ) ? 0.0 : model.μ / λ
     θ = modelconnec.θ
     for i in 1:N
         if rand(Bernoulli(λ))
