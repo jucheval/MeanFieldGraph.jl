@@ -26,4 +26,5 @@ using Test
     include("simulate.jl")
     include("estimation.jl")
     include("classification.jl")
+    include("plots.jl")
 end
