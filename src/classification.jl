@@ -40,7 +40,7 @@ function classification(
         threshold = mean(σ̂)
         output = σ̂ .>= threshold
     elseif clustering in (:single, :average, :complete, :ward)
-        distances = [abs(σ̂[i] - σ̂[j]) for i in eachindex(σ̂), j in eachindex(σ̂)]
+        distances = pairwise_abs_distances(σ̂)
         ct = cutree(hclust(distances; linkage=clustering); k=2)
         id_excitatory = ct[argmax(σ̂)]
         output = ct .== id_excitatory
@@ -76,6 +76,20 @@ function covariance_matrix(data::DiscreteTimeData)::Matrix{Float64}
 end
 
 # Auxiliary functions
+
+function pairwise_abs_distances(v::Vector{<:Real})::Matrix{Float64}
+    n = length(v)
+    output = Matrix{Float64}(undef, n, n)
+    @inbounds for i in 1:n
+        output[i, i] = 0.0
+        @inbounds for j in (i + 1):n
+            d = abs(v[i] - v[j])
+            output[i, j] = d
+            output[j, i] = d
+        end
+    end
+    return output
+end
 
 function cluster2bool(R::ClusteringResult)::Vector{Bool}
     output = Vector{Bool}(undef, sum(counts(R)))
