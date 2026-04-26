@@ -69,10 +69,7 @@ function covariance_matrix(data::DiscreteTimeData)::Matrix{Float64}
     N, T = size(data)
     Z = sum(X; dims=2)
 
-    s = zeros((N, N))
-    for t in 1:(T - 1)
-        s += @views(X[:, t + 1] * transpose(X[:, t]))
-    end
+    s = @views(X[:, 2:end] * transpose(X[:, 1:(end - 1)]))
     output = s / (T - 1) - Z * transpose(Z) / T^2
 
     return output
