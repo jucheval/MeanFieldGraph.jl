@@ -215,7 +215,7 @@ function misclassificationrate(
         threshold = mean(σ)
         classif = σ .>= threshold
     else
-        distances = [abs(σ[i] - σ[j]) for i in eachindex(σ), j in eachindex(σ)]
+        distances = MeanFieldGraph.pairwise_abs_distances(σ)
         ct = cutree(hclust(distances; linkage=clustering); k=2)
         id_excitatory = ct[argmax(σ)]
         classif = ct .== id_excitatory
