@@ -20,6 +20,13 @@
     end
 
     @test begin
+        modelconnec =
+            MF.MarkovChainConnectivity(MarkovChainModel(0.0, 0.0, 0.0), ones(Bool, 4, 4))
+        values, child, parent = MF.backward_step(collect(1:4), modelconnec)
+        all(i -> (haskey(values, i) || (i in child)), 1:4) && length(child) == length(parent)
+    end
+
+    @test begin
         Random.seed!(1)
         Nsimu = 1e6
         β = rand()
