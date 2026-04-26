@@ -15,10 +15,10 @@ function classification(
     if method == :aggregated
         σ̂ = covariance_vector(data)
     elseif method == :spectral
-        # compute the leading singular vector of the covariance matrix
+        # compute the leading right singular vector of the covariance matrix
         Σ̂ = covariance_matrix(data)
-        _, vecs = eigsolve(transpose(Σ̂) * Σ̂) # faster than full SVD
-        v̌ = vecs[1]
+        _, _, rvecs, = svdsolve(Σ̂, 1) # avoids forming Σ̂'Σ̂ explicitly
+        v̌ = rvecs[1]
 
         # sign disambiguation
         σ̂_ag = sum(Σ̂; dims=1)[1, :]
