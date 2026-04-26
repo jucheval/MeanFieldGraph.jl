@@ -47,6 +47,22 @@
     @test MF.fit(MarkovChainModel, data, r₊) ==
         MarkovChainModel(MF.Φ(estimators(data)..., r₊)...)
 
+    @test begin
+        short_data = DiscreteTimeData(fill(true, 2, 1))
+        m, v, w = estimators(short_data, 0)
+        m == 1.0 && isfinite(v) && isfinite(w)
+    end
+
+    @test begin
+        μ, λ, p = MF.Φ(0.0, 0.0, 0.0, 0.5)
+        isfinite(μ) && isfinite(λ) && isfinite(p) && 0 <= μ <= λ <= 1 && 0 <= p <= 1
+    end
+
+    @test begin
+        μ, λ, p = MF.Φ(1.0, 0.0, 0.0, 0.5)
+        isfinite(μ) && isfinite(λ) && isfinite(p) && 0 <= μ <= λ <= 1 && 0 <= p <= 1
+    end
+
     @testset "inversion of Ψ" begin
         for (λ, p) in Iterators.product(0.1:0.1:0.9, 0.1:0.1:0.9)
             for μ in 0.1:0.1:λ
