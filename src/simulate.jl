@@ -50,9 +50,10 @@ function rand(
 
     output = Matrix{Bool}(undef, N, T)
     current_value = stationary_initial_condition(modelconnec, excitatory)
+    past_value = similar(current_value)
     output[:, 1] = current_value
     for t in 1:(T - 1)
-        forward_simulation!(current_value, modelconnec, excitatory)
+        forward_simulation!(current_value, past_value, modelconnec, excitatory)
         output[:, t + 1] = current_value
     end
     return DiscreteTimeData(output)
@@ -151,10 +152,11 @@ end
 
 function forward_simulation!(
     current_value::Vector{Bool},
+    past_value::Vector{Bool},
     modelconnec::MarkovChainConnectivity,
     excitatory::Vector{Bool},
 )
-    past_value = copy(current_value)
+    copyto!(past_value, current_value)
 
     model = modelconnec.model
     N = size(modelconnec)

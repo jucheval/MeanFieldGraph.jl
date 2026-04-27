@@ -1,8 +1,10 @@
 @testset "simulate.jl" begin
     @test begin
         testvalue = [true, false, true, false]
+        buffer = similar(testvalue)
         MF.forward_simulation!(
             testvalue,
+            buffer,
             MF.MarkovChainConnectivity(MarkovChainModel(0.5, 0.5, 0.0), ones(Int, (4, 4))),
             [true, false, true, false],
         )
@@ -11,8 +13,10 @@
 
     @test begin
         testvalue = [false, true, false, true]
+        buffer = similar(testvalue)
         MF.forward_simulation!(
             testvalue,
+            buffer,
             MF.MarkovChainConnectivity(MarkovChainModel(0, 0.5, 0.0), ones(Int, (4, 4))),
             [true, false, true, false],
         )
@@ -20,10 +24,12 @@
     end
 
     @test begin
-        modelconnec =
-            MF.MarkovChainConnectivity(MarkovChainModel(0.0, 0.0, 0.0), ones(Bool, 4, 4))
+        modelconnec = MF.MarkovChainConnectivity(
+            MarkovChainModel(0.0, 0.0, 0.0), ones(Bool, 4, 4)
+        )
         values, child, parent = MF.backward_step(collect(1:4), modelconnec)
-        all(i -> (haskey(values, i) || (i in child)), 1:4) && length(child) == length(parent)
+        all(i -> (haskey(values, i) || (i in child)), 1:4) &&
+            length(child) == length(parent)
     end
 
     @test begin
