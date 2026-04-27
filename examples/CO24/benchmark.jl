@@ -22,7 +22,7 @@ data = rand(model, excitatory, T)
 aggregated_estimation(data::DiscreteTimeData) = MeanFieldGraph.covariance_vector(data)
 function spectral_estimation(data::DiscreteTimeData)
     Σ̂ = MeanFieldGraph.covariance_matrix(data)
-    return eigsolve(transpose(Σ̂) * Σ̂)
+    return svdsolve(Σ̂)
 end
 
 ## benchmark
